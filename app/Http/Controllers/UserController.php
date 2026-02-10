@@ -2,7 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rules\Password;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -19,23 +25,74 @@ class UserController extends Controller
      */
     public function create()
     {
-        //
+        
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created user in storage.
      */
     public function store(Request $request)
     {
-        //
+
+      try {
+        $validated = $request->validate([
+          'first_name' => ['required', 'string'],
+          'last_name' => ['required', 'string'],
+          'email' => ['required', 'email', 'unique:users,email'],
+          'password' => ['required', 'string', Password::min(8)],
+          'role' => ['required', new Enum(UserRole::class)]
+        ]);
+        
+        // return response()->json($validated);
+
+        $user = User::create([
+          'first_name' => $validated['first_name'],
+          'last_name' => $validated['last_name'],
+          'email' => $validated['email'],
+          'password' => Hash::make($validated['password']),
+          'role' => $validated['role']
+        ]);
+
+        return response()->json(['message' => 'User successfully created', 'data' => [
+          'first_name' => $user['first_name'],
+          'last_name' => $user['last_name'],
+          'role' => $user['role']
+        ]], 201);
+
+      } catch(Throwable $error) {
+        return response()->json(['message' => $error->getMessage()], 500);
+      }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request)
     {
-        return ["Output" => "Hello World", "id" => $id];
+      try {
+        $validated = $request->validate([
+        'email' => ['email', 'required'],
+        'password' => ['string', Password::min(8)]
+      ]);
+
+      $user = User::where('email', $validated['email'])->firstOrFail();
+  
+      if (!$user) {
+        return response()->json(['message' => "No user found"], 404);
+      }
+      
+      if(!Hash::check($validated['password'], $user->password)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+      }
+
+      return response()->json(['message' => "Login successful", 'data' => [
+        'first_name' => $user['first_name'],
+        'last_name' => $user['last_name'],
+        'role' => $user['role']
+      ]]);
+      } catch(Throwable $error) {
+        return response()->json(['message' => $error->getMessage()], 500);
+      }
     }
 
     /**
