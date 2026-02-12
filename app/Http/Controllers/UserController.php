@@ -73,8 +73,6 @@ class UserController extends Controller
     public function show(Request $request)
     {
       try {
-        return response()->json(["message" => "hello world"]);
-
         $validated = $request->validate([
           'email' => ['email', 'required'],
           'password' => ['string', Password::min(8)]

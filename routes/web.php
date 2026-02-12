@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Request;
 
 Route::get('/', function () {
-    return "hello world";
+    return "Laravel 12";
 });
 
 Route::post('/login', function (Request $request) {
