@@ -42,8 +42,6 @@ class UserController extends Controller
           'password' => ['required', 'string', Password::min(8)],
           'role' => ['required', new Enum(UserRole::class)]
         ]);
-        
-        // return response()->json($validated);
 
         $user = User::create([
           'first_name' => $validated['first_name'],
@@ -53,10 +51,15 @@ class UserController extends Controller
           'role' => $validated['role']
         ]);
 
+        // $token_name = strtolower("$user->first_name-token");
+
+        // $token = $user->createToken($token_name)->plainTextToken;
+
         return response()->json(['message' => 'User successfully created', 'data' => [
           'first_name' => $user['first_name'],
           'last_name' => $user['last_name'],
-          'role' => $user['role']
+          'role' => $user['role'],
+          // 'token' => $token,
         ]], 201);
 
       } catch(Throwable $error) {
@@ -70,26 +73,33 @@ class UserController extends Controller
     public function show(Request $request)
     {
       try {
+        return response()->json(["message" => "hello world"]);
+
         $validated = $request->validate([
-        'email' => ['email', 'required'],
-        'password' => ['string', Password::min(8)]
-      ]);
+          'email' => ['email', 'required'],
+          'password' => ['string', Password::min(8)]
+        ]);
+        
+        $user = User::where('email', $validated['email'])->firstOrFail();
 
-      $user = User::where('email', $validated['email'])->firstOrFail();
-  
-      if (!$user) {
-        return response()->json(['message' => "No user found"], 404);
-      }
-      
-      if(!Hash::check($validated['password'], $user->password)) {
-        return response()->json(['message' => 'Invalid credentials'], 401);
-      }
+        if (!$user) {
+          return response()->json(['message' => "No user found"], 404);
+        }
+        
+        if(!Hash::check($validated['password'], $user->password)) {
+          return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+        
+        $token_name = strtolower("$user->first_name-token");
 
-      return response()->json(['message' => "Login successful", 'data' => [
-        'first_name' => $user['first_name'],
-        'last_name' => $user['last_name'],
-        'role' => $user['role']
-      ]]);
+        $token = $user->createToken($token_name)->plainTextToken;
+
+        return response()->json(['message' => "Login successful", 'data' => [
+          'first_name' => $user['first_name'],
+          'last_name' => $user['last_name'],
+          'role' => $user['role'],
+          'token' => $token,
+        ]]);
       } catch(Throwable $error) {
         return response()->json(['message' => $error->getMessage()], 500);
       }
