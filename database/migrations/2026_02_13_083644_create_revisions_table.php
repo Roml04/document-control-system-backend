@@ -13,9 +13,8 @@ return new class extends Migration
     {
         Schema::create('revisions', function (Blueprint $table) {
             $table->id();
-            $table->string('tile');
+            $table->string('title');
             $table->string('reason');
-            $table->string('file_link');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
             $table->timestamps();

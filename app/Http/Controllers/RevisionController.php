@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Revision;
 use Illuminate\Http\Request;
+use Throwable;
 
 class RevisionController extends Controller
 {
@@ -12,15 +13,47 @@ class RevisionController extends Controller
      */
     public function index()
     {
-        //
+      try {
+        $revision = Revision::all();
+
+        return response()->json([
+          'title' => $revision->title,
+          'reason' => $revision->reason,
+          'user_id' => $revision->user_id,
+          'document_id' => $revision->document_id
+        ]);
+      } catch(Throwable $error) {
+        return response()->json(['message' => $error->getMessage()]);
+      }
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
+      try {
+        $validated = $request->validate([
+        'title' => $request['title'],
+        'reason' => $request['reason'],
+        'user_id' => $request['user_id'],
+        'document_id' => $request['document_id'],
+      ]);
+
+      Revision::create([
+        'title' => $validated['title'],
+        'reason' => $validated['reason'],
+        'user_id' => $validated['user_id'],
+        'document_id' => $validated['document_id'],
+      ]);
+
+      return response()->json(['message' => 'Request submitted successfully']);
+
+      } catch(Throwable $error) {
+        return response()->json(['message' => $error->getMessage()]);
+      }
+
+
     }
 
     /**

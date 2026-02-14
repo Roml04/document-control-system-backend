@@ -34,9 +34,21 @@ class DocumentController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Document $document)
+    public function show()
     {
-        //
+      /*
+      * 
+      */
+      return response()->json([
+        "type" => "wastemanagement",
+        "originator" => "Maria Santos",
+        "department" => "IT Department",
+        "revisionNumber" => "rev-0001",
+        "revisionDetails" => "Revision for waste management",
+        "revisionDate" => "2026-02-10",
+        "approver" => "Juan Dela Cruz",
+        "approvedDate" => "2026-02-14"
+      ]);
     }
 
     /**
