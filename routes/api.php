@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [UserController::class, 'store']);
 
 Route::controller(UserController::class)->group(function() {
-  Route::post('/user', 'show');
+  Route::post('/user/{id}', 'show');
 });
 
 Route::controller(DocumentController::class)->group(function() {
