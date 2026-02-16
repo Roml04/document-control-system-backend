@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\UserController;
 use App\Models\Revision;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ Route::controller(DocumentController::class)->group(function() {
   Route::get('/waste-management', 'show');
 });
 
-Route::controller(Revision::class)->group(function() {
+Route::controller(RevisionController::class)->group(function() {
   Route::post('/revision', 'create');
   Route::get('/revision', 'index');
 });

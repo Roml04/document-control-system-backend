@@ -70,7 +70,7 @@ class UserController extends Controller
       try {
         $validated = $request->validate([
           'email' => ['email', 'required'],
-          'password' => ['string', Password::min(8)]
+          'password' => ['required', 'string', Password::min(8)]
         ]);
         
         $user = User::where('email', $validated['email'])->firstOrFail();

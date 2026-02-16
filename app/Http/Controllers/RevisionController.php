@@ -23,7 +23,7 @@ class RevisionController extends Controller
           'document_id' => $revision->document_id
         ]);
       } catch(Throwable $error) {
-        return response()->json(['message' => $error->getMessage()]);
+        return response()->json(['message' => $error->getMessage()], 500);
       }
     }
 
@@ -32,28 +32,28 @@ class RevisionController extends Controller
      */
     public function create(Request $request)
     {
+      
+      // return response()->json(['data' => $request]);
       try {
         $validated = $request->validate([
-        'title' => $request['title'],
-        'reason' => $request['reason'],
-        'user_id' => $request['user_id'],
-        'document_id' => $request['document_id'],
-      ]);
+          'title' => ['required', 'string'],
+          'reason' => ['required', 'string'],
+          'user_id' => ['required'],
+          'document_id' => ['required'],
+        ]);
 
-      Revision::create([
-        'title' => $validated['title'],
-        'reason' => $validated['reason'],
-        'user_id' => $validated['user_id'],
-        'document_id' => $validated['document_id'],
-      ]);
+        Revision::create([
+          'title' => $validated['title'],
+          'reason' => $validated['reason'],
+          'user_id' => $validated['user_id'],
+          'document_id' => $validated['document_id'],
+        ]);
 
       return response()->json(['message' => 'Request submitted successfully']);
 
       } catch(Throwable $error) {
         return response()->json(['message' => $error->getMessage()]);
       }
-
-
     }
 
     /**
