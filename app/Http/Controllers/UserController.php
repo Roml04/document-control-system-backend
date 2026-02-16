@@ -55,12 +55,7 @@ class UserController extends Controller
 
         // $token = $user->createToken($token_name)->plainTextToken;
 
-        return response()->json(['message' => 'User successfully created', 'data' => [
-          'first_name' => $user['first_name'],
-          'last_name' => $user['last_name'],
-          'role' => $user['role'],
-          // 'token' => $token,
-        ]], 201);
+        return response()->json(['message' => 'User successfully created'], 201);
 
       } catch(Throwable $error) {
         return response()->json(['message' => $error->getMessage()], 500);
@@ -93,6 +88,7 @@ class UserController extends Controller
         $token = $user->createToken($token_name)->plainTextToken;
 
         return response()->json(['message' => "Login successful", 'data' => [
+          'user_id' => $user['id'],
           'first_name' => $user['first_name'],
           'last_name' => $user['last_name'],
           'role' => $user['role'],
