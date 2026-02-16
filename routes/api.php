@@ -17,11 +17,13 @@ Route::controller(DocumentController::class)->group(function() {
   Route::get('/waste-management', 'show');
 });
 
-Route::controller(RevisionController::class)->group(function() {
-  Route::post('/revision', 'create');
-  Route::get('/revision', 'index');
-});
-// Route::middleware(['auth:sanctum'])->group(function() {});
+
+// Route::middleware(['auth:sanctum'])->group(function() {
+  Route::controller(RevisionController::class)->group(function() {
+    Route::post('/revision', 'create');
+    Route::get('/revision', 'index');
+  });
+// });
 
 Route::middleware('auth:sanctum')->get('/me', function(Request $request) {
   return response()->json($request->user());

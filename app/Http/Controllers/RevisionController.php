@@ -16,12 +16,7 @@ class RevisionController extends Controller
       try {
         $revision = Revision::all();
 
-        return response()->json([
-          'title' => $revision->title,
-          'reason' => $revision->reason,
-          'user_id' => $revision->user_id,
-          'document_id' => $revision->document_id
-        ]);
+        return response()->json($revision);
       } catch(Throwable $error) {
         return response()->json(['message' => $error->getMessage()], 500);
       }
@@ -32,7 +27,6 @@ class RevisionController extends Controller
      */
     public function create(Request $request)
     {
-      
       // return response()->json(['data' => $request]);
       try {
         $validated = $request->validate([
