@@ -36,9 +36,9 @@ class DocumentController extends Controller
      */
     public function show($id)
     {
-      Document::where('id', $id)->first();
+      $document = Document::where('id', $id)->first();
 
-      return response()->json();
+      return response()->json($document);
     }
 
     /**
