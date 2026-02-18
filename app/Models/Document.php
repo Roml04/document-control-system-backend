@@ -16,4 +16,8 @@ class Document extends Model
       'approver',
       'approved_date',
     ];
+
+    public function version() {
+      return $this->hasMany(Version::class);
+    }
 }

@@ -48,4 +48,29 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function revision() {
+      return $this->hasMany(Revision::class);
+    }
+
+    public function originatedVersion() {
+      /*
+      * The first parameter specifies the related 
+      * model. 
+      * 
+      * The second parameter specifies the column 
+      * (foreign key) of the related model that
+      * references the primary key of this model
+      * 
+      * A third parameter can also be used to
+      * specify the primary key in this model 
+      * that is being used as a reference by 
+      * the related model.
+      */
+      return $this->hasMany(Version::class, 'originator');
+    }
+    
+    public function approvedVersion() {
+      return $this->hasMany(Version::class, 'approver');
+    }
 }
