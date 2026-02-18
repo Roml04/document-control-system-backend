@@ -14,13 +14,6 @@ return new class extends Migration
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->enum('type', ['wastemanagement', 'hrprocedure', 'documentcontrol']);
-            $table->string('originator');
-            $table->string('department');
-            $table->string('revision_number');
-            $table->string('revision_details');
-            $table->date('revision_date');
-            $table->string('approver');
-            $table->date('approved_date');
             $table->timestamps();
         });
     }
