@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\Version;
 use Illuminate\Http\Request;
+use Throwable;
 
 class DocumentController extends Controller
 {
@@ -36,9 +38,22 @@ class DocumentController extends Controller
      */
     public function show($id)
     {
-      $document = Document::where('id', $id)->first();
+      try {
+        $document = Version::where('document_id', $id)->latest()->first();
 
-      return response()->json($document);
+        return response()->json([
+          'id' => $document['id'],
+          'originator' => $document['originator'],
+          'department' => $document['department'],
+          'revisionNumber' => $document['revision_number'],
+          'revisionDetails' => $document['revision_details'],
+          'revisionDate' => $document['revision_date'],
+          'approver' => $document['approver'],
+          'approvedDate' => $document['approved_date'],
+        ]);
+      } catch (Throwable $error) {
+        return response()->json(['message' => $error->getMessage()], 500);
+      }
     }
 
     /**
