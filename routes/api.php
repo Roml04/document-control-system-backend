@@ -3,6 +3,7 @@
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VersionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,10 @@ Route::controller(DocumentController::class)->group(function() {
     Route::get('/revision', 'index');
   });
 // });
+
+Route::controller(VersionController::class)->group(function() {
+  Route::post('/version/latest', 'showLatest');
+});
 
 Route::middleware('auth:sanctum')->get('/me', function(Request $request) {
   return response()->json($request->user());

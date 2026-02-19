@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Version;
 use Illuminate\Http\Request;
+use Throwable;
 
 class VersionController extends Controller
 {
@@ -37,6 +38,39 @@ class VersionController extends Controller
     public function show(Version $version)
     {
         //
+    }
+    
+    /**
+     * Display the specified resource.
+     */
+    public function showLatest(Request $request)
+    {
+      try {
+        $validated = $request->validate([
+          'document_id' => ['required'],
+        ]);
+
+        $version = Version::where('document_id', $validated['document_id'])->first();
+
+        if(!$version) {
+          return response()->json([]);
+        }
+
+        return response()->json([
+          'id' => $version['id'],
+          'originator' => $version['originator'],
+          'department' => $version['department'],
+          'revisionNumber' => $version['revision_number'],
+          'revisionDetails' => $version['revision_details'],
+          'revisionDate' => $version['revision_date'],
+          'approver' => $version['approver'],
+          'approvedDate' => $version['approved_date'],
+        ]);
+
+      } catch(Throwable $error) {
+        return response()->json(['message' => $error->getMessage()], 500);
+      }
+
     }
 
     /**
