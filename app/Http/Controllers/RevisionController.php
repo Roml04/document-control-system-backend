@@ -74,19 +74,31 @@ class RevisionController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Revision $revision)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, Revision $revision)
     {
-        //
+      try {
+        $validated = $request->validate([
+          'title' => ['sometimes', 'string'],
+          'reason' => ['sometimes', 'string'],
+          'approval_stage' => ['sometimes', new Enum(ApprovalStage::class)],
+          'status' => ['sometimes', new Enum(RevisionStatus::class)],
+          'user_id' => ['sometimes'],
+          'document_id' => ['sometimes'],
+        ]);
+
+        $revision->update($validated);
+
+        return response()->json([
+          'message' => 'Resource updated successfully',
+          'data' => $revision
+        ]);
+      } catch(Throwable $error) {
+        return response()->json([
+          'message' => $error->getMessage()
+        ]);
+      }
     }
 
     /**

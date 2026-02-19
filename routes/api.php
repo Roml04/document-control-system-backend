@@ -22,6 +22,7 @@ Route::controller(DocumentController::class)->group(function() {
   Route::controller(RevisionController::class)->group(function() {
     Route::post('/revision', 'create');
     Route::get('/revision', 'index');
+    Route::patch('/revision', 'update');
   });
 // });
 
