@@ -17,7 +17,11 @@ class RevisionController extends Controller
     public function index()
     {
       try {
-        $revision = Revision::all();
+        $revision = Revision::with(['user' => function ($q) {
+          $q->get('id', 'first_name', 'last_name');
+        }, 'document' => function ($q) {
+          $q->get('id', 'type');
+        }])->get();
 
         return response()->json($revision);
       } catch(Throwable $error) {
