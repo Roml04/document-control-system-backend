@@ -41,7 +41,7 @@ class VersionController extends Controller
     }
     
     /**
-     * Display the specified resource.
+     * Display the latest resource.
      */
     public function showLatest(Request $request)
     {
