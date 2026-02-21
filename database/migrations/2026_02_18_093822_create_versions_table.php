@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('originator');
             $table->string('department');
-            $table->string('revision_number');
-            $table->string('revision_details');
-            $table->date('revision_date');
-            $table->string('approver');
-            $table->date('approved_date');
+            $table->string('revision_number')->nullable();
+            $table->string('revision_details')->nullable();
+            $table->date('revision_date')->nullable();
+            $table->string('approver')->nullable();
+            $table->date('approved_date')->nullable();
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
             $table->string('file_path');
             $table->timestamps();
