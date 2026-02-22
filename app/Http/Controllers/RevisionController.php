@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ApprovalStage;
 use App\Enums\RevisionStatus;
 use App\Models\Revision;
 use Illuminate\Http\Request;
@@ -39,7 +38,6 @@ class RevisionController extends Controller
         $validated = $request->validate([
           'title' => ['required', 'string'],
           'reason' => ['required', 'string'],
-          'approval_stage' => ['required', new Enum(ApprovalStage::class)],
           'status' => ['required', new Enum(RevisionStatus::class)],
           'user_id' => ['required'],
           'document_id' => ['required'],
@@ -48,7 +46,6 @@ class RevisionController extends Controller
         Revision::create([
           'title' => $validated['title'],
           'reason' => $validated['reason'],
-          'approval_stage' => $validated['approval_stage'],
           'status' => $validated['status'],
           'user_id' => $validated['user_id'],
           'document_id' => $validated['document_id'],
@@ -86,7 +83,6 @@ class RevisionController extends Controller
         $validated = $request->validate([
           'title' => ['sometimes', 'string'],
           'reason' => ['sometimes', 'string'],
-          'approval_stage' => ['sometimes', new Enum(ApprovalStage::class)],
           'status' => ['sometimes', new Enum(RevisionStatus::class)],
           'user_id' => ['sometimes'],
           'document_id' => ['sometimes'],

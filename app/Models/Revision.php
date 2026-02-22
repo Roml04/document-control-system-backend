@@ -9,7 +9,6 @@ class Revision extends Model
     protected $fillable = [
       'title', 
       'reason', 
-      'approval_stage', 
       'status', 
       'user_id', 
       'document_id'
