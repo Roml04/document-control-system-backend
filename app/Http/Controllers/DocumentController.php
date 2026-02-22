@@ -14,7 +14,15 @@ class DocumentController extends Controller
      */
     public function index()
     {
-        //
+        try {
+          $documents = Document::with(['version' => function ($version) {
+            $version->latest()->first();
+          }])->get();
+
+          return response()->json($documents);
+        } catch (Throwable $error) {
+          return response()->json(['message' => $error->getMessage()]);
+        }
     }
 
     /**

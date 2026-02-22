@@ -14,6 +14,7 @@ Route::controller(UserController::class)->group(function() {
 });
 
 Route::controller(DocumentController::class)->group(function() {
+  Route::get('/document', 'index');
   Route::get('/document/{id}', 'show');
 });
 
