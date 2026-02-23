@@ -97,7 +97,7 @@ class RevisionController extends Controller
       } catch(Throwable $error) {
         return response()->json([
           'message' => $error->getMessage()
-        ]);
+        ], 500);
       }
     }
 

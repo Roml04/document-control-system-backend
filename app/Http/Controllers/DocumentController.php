@@ -21,7 +21,7 @@ class DocumentController extends Controller
 
           return response()->json($documents);
         } catch (Throwable $error) {
-          return response()->json(['message' => $error->getMessage()]);
+          return response()->json(['message' => $error->getMessage()], 500);
         }
     }
 
