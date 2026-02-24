@@ -18,6 +18,7 @@ return new class extends Migration
             $table->enum('status', ['coordinator_approval', 'superior_approval', 'approved', 'denied'])->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
+            $table->string('comment')->nullable();
             $table->timestamps();
         });
     }

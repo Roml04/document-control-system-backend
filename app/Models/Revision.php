@@ -11,7 +11,8 @@ class Revision extends Model
       'reason', 
       'status', 
       'user_id', 
-      'document_id'
+      'document_id',
+      'comment'
     ];
 
     public function document() {
