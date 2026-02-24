@@ -41,7 +41,7 @@ class RevisionController extends Controller
           'status' => ['required', new Enum(RevisionStatus::class)],
           'user_id' => ['required'],
           'document_id' => ['required'],
-          'comment' => ['sometimes']
+          'comment' => ['sometimes', 'string']
         ]);
 
         Revision::create([
@@ -50,7 +50,7 @@ class RevisionController extends Controller
           'status' => $validated['status'],
           'user_id' => $validated['user_id'],
           'document_id' => $validated['document_id'],
-          'comment' => $validated['comment'],
+          'comment' => $validated['comment'] ?? null,
         ]);
 
       return response()->json(['message' => 'Request submitted successfully']);
