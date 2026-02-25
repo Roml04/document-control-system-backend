@@ -36,21 +36,24 @@ class DocumentController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Document $document)
     {
-      try {
-        $document = Version::where('document_id', $id)->latest()->first();
+      try {        // $document = Version::where('document_id', $id)->latest()->first();
+        $version = Version::with(['document' => function($document) {
+          $document->select('id', 'name');
+        }])->where('document_id', $document['id'])->latest()->first();
 
-        return response()->json([
-          'id' => $document['id'],
-          'originator' => $document['originator'],
-          'department' => $document['department'],
-          'revisionNumber' => $document['revision_number'],
-          'revisionDetails' => $document['revision_details'],
-          'revisionDate' => $document['revision_date'],
-          'approver' => $document['approver'],
-          'approvedDate' => $document['approved_date'],
-        ]);
+        return response()->json(['data' => [
+          'id' => $version['id'],
+          'originator' => $version['originator'],
+          'department' => $version['department'],
+          'revisionNumber' => $version['revision_number'],
+          'revisionDetails' => $version['revision_details'],
+          'revisionDate' => $version['revision_date'],  
+          'approver' => $version['approver'],
+          'approvedDate' => $version['approved_date'],
+          'document' => $version['document']
+        ]]);
       } catch (Throwable $error) {
         return response()->json(['message' => $error->getMessage()], 500);
       }

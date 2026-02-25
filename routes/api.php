@@ -15,9 +15,8 @@ Route::controller(UserController::class)->group(function() {
 
 Route::controller(DocumentController::class)->group(function() {
   Route::get('/document', 'index');
-  Route::get('/document/{id}', 'show');
+  Route::get('/document/{document}', 'show');
 });
-
 
 // Route::middleware(['auth:sanctum'])->group(function() {
   Route::controller(RevisionController::class)->group(function() {
