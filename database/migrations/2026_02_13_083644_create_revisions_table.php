@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('reason');
-            $table->enum('status', ['coordinator_approval', 'superior_approval', 'approved', 'denied'])->nullable();
+            $table->enum('status', ['coordinator_approval', 'originator_edit ', 'superior_approval', 'approved', 'denied'])->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
             $table->string('comment')->nullable();
