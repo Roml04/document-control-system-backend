@@ -86,7 +86,27 @@ class VersionController extends Controller
      */
     public function update(Request $request, Version $version)
     {
-        //
+      return response()->json($request);
+        try {
+          $validated = $request->validate([
+            'originator' => ['required', 'string'], 
+            'department' => ['required', 'string'],
+            'revisionNumber' => ['required', 'string'],
+            'revisionDetails' => ['required', 'string'],
+            'revisionDate' => ['required', 'string'],
+            'approver' => ['required', 'string'],
+            'approvedDate' => ['required', 'string'],
+        ]);
+
+        $version->update($validated);
+
+        return response()->json([
+          'message' => 'Updated document details submitted successfully',
+          'data' => $version
+        ]);
+        } catch(Throwable $error) {
+          return response()->json(['message' => $error->getMessage()], 500);
+        }
     }
 
     /**

@@ -28,6 +28,7 @@ Route::controller(DocumentController::class)->group(function() {
 
 Route::controller(VersionController::class)->group(function() {
   Route::post('/version/latest', 'showLatest');
+  Route::patch('/version/{version}', 'update');
 });
 
 Route::middleware('auth:sanctum')->get('/me', function(Request $request) {
