@@ -20,4 +20,8 @@ class Document extends Model
     public function version() {
       return $this->hasMany(Version::class);
     }
+
+    public function revision() {
+      return $this->hasMany(Revision::class);
+    }
 }

@@ -86,27 +86,33 @@ class VersionController extends Controller
      */
     public function update(Request $request, Version $version)
     {
-      return response()->json($request);
-        try {
-          $validated = $request->validate([
-            'originator' => ['required', 'string'], 
-            'department' => ['required', 'string'],
-            'revisionNumber' => ['required', 'string'],
-            'revisionDetails' => ['required', 'string'],
-            'revisionDate' => ['required', 'string'],
-            'approver' => ['required', 'string'],
-            'approvedDate' => ['required', 'string'],
+      try {
+        $validated = $request->validate([
+          'originator' => ['required', 'string'], 
+          'department' => ['required', 'string'],
+          'revisionNumber' => ['required', 'string'],
+          'revisionDetails' => ['required', 'string'],
+          'revisionDate' => ['required', 'string'],
+          'approver' => ['nullable', 'string'],
+          'approvedDate' => ['nullable', 'string'],
         ]);
 
-        $version->update($validated);
-
-        return response()->json([
-          'message' => 'Updated document details submitted successfully',
-          'data' => $version
+        $version->update([
+          'originator' => $validated['originator'],
+          'department' => $validated['department'],
+          'revision_number' => $validated['revisionNumber'],
+          'revision_details' => $validated['revisionDetails'],
+          'revision_date' => $validated['revisionDate'],
+          'approver' => $validated['approver'],
+          'approved_date' => $validated['approvedDate'],
         ]);
-        } catch(Throwable $error) {
-          return response()->json(['message' => $error->getMessage()], 500);
-        }
+
+      return response()->json([
+        'message' => 'Updated document details submitted successfully',
+      ]);
+      } catch(Throwable $error) {
+        return response()->json(['message' => $error->getMessage()], 500);
+      }
     }
 
     /**

@@ -74,4 +74,12 @@ class DocumentController extends Controller
     {
         //
     }
+    
+    public function updateVersion(Document $document) {
+      
+      $relatedRevision = $document->revision->first();
+      $relatedVersion = $document->version->first();
+        
+      return response()->json(["revision" => $relatedRevision, "version" => $relatedVersion, "document" => $document]);
+    }
 }
