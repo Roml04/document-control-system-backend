@@ -15,7 +15,8 @@ class Version extends Model
       'approver',
       'approved_date',
       'document_id',
-      'file_path'
+      'file_path',
+      'status'
     ];
 
     public function document() {

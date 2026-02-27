@@ -28,7 +28,9 @@ Route::controller(DocumentController::class)->group(function() {
 // });
 
 Route::controller(VersionController::class)->group(function() {
+  Route::post('/version', 'store');
   Route::post('/version/latest', 'showLatest');
+  Route::post('/version/pending/{document}', 'showPending');
   Route::patch('/version/{version}', 'update');
 });
 

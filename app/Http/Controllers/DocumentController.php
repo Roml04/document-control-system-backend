@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\VersionStatus;
 use App\Models\Document;
 use App\Models\Revision;
 use App\Models\Version;
@@ -42,7 +43,7 @@ class DocumentController extends Controller
       try {        // $document = Version::where('document_id', $id)->latest()->first();
         $version = Version::with(['document' => function($document) {
           $document->select('id', 'name');
-        }])->where('document_id', $document['id'])->latest()->first();
+        }])->where(['document_id' => $document['id'], 'status' => VersionStatus::Approved->value])->latest()->first();
 
         return response()->json(['data' => [
           'id' => $version['id'],
