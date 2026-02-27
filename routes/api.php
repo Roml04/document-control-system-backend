@@ -16,7 +16,7 @@ Route::controller(UserController::class)->group(function() {
 Route::controller(DocumentController::class)->group(function() {
   Route::get('/document', 'index');
   Route::get('/document/{document}', 'show');
-  Route::get('/document/{document}/version', 'updateVersion');
+  Route::get('/document/{document}/revision/{revision}', 'updateVersion');
 });
 
 // Route::middleware(['auth:sanctum'])->group(function() {

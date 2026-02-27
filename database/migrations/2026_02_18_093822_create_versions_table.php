@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\VersionStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rules\Enum;
 
 return new class extends Migration
 {
@@ -21,7 +23,8 @@ return new class extends Migration
             $table->string('approver')->nullable();
             $table->date('approved_date')->nullable();
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
-            $table->string('file_path');
+            $table->string('file_path')->nullable();
+            $table->enum('status', ['pending_approval', 'approved'])->nullable();
             $table->timestamps();
         });
     }

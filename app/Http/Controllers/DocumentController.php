@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Models\Revision;
 use App\Models\Version;
 use Illuminate\Http\Request;
 use Throwable;
@@ -75,11 +76,24 @@ class DocumentController extends Controller
         //
     }
     
-    public function updateVersion(Document $document) {
+    public function updateVersion(Document $document, Revision $revision) {
       
-      $relatedRevision = $document->revision->first();
-      $relatedVersion = $document->version->first();
+      // // abort_if($revision->document_id !== $document->id, 404);
+
+      // $version = Version::where('document_id', $document->id)
+      //     ->where('status', 'originator_edit')
+      //     ->latest()
+      //     ->first();
+
+      // return response()->json([
+      //     "revision" => $revision,
+      //     "version" => $version,
+      //     "document" => $document
+      // ]);
+      
+      // $relatedRevision = $document->revision->first();
+      $version = $document->version->first();
         
-      return response()->json(["revision" => $relatedRevision, "version" => $relatedVersion, "document" => $document]);
+      return response()->json(["revision" => $revision, "version" => $version, "document" => $document]);
     }
 }
