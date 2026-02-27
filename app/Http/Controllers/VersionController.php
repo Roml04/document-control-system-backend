@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\VersionStatus;
 use App\Models\Version;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Enum;
 use Throwable;
 
 class VersionController extends Controller
@@ -95,6 +97,8 @@ class VersionController extends Controller
           'revisionDate' => ['required', 'string'],
           'approver' => ['nullable', 'string'],
           'approvedDate' => ['nullable', 'string'],
+          'filePath' => ['nullable', 'string'],
+          'status' => ['required', new Enum(VersionStatus::class)]
         ]);
 
         $version->update([
@@ -105,6 +109,8 @@ class VersionController extends Controller
           'revision_date' => $validated['revisionDate'],
           'approver' => $validated['approver'],
           'approved_date' => $validated['approvedDate'],
+          'file_path' => $validated['filePath'],
+          'status' => $validated['status'],
         ]);
 
       return response()->json([
