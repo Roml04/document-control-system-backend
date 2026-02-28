@@ -16,7 +16,8 @@ class Version extends Model
       'approved_date',
       'document_id',
       'file_path',
-      'status'
+      'status',
+      'revision_id'
     ];
 
     public function document() {
@@ -29,5 +30,9 @@ class Version extends Model
 
     public function approverUser() {
       return $this->belongsTo(User::class, 'approver');
+    }
+
+    public function revision() {
+      return $this->belongsTo(Revision::class);
     }
 }

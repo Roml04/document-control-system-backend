@@ -25,6 +25,8 @@ return new class extends Migration
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
             $table->string('file_path')->nullable();
             $table->enum('status', ['pending_approval', 'approved']);
+            // $table->foreignId('revision_id')->constrained()->onDelete('cascade')->nullable();
+            $table->foreignId('revision_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }

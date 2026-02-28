@@ -114,7 +114,7 @@ class VersionController extends Controller
         // $version = $document->version->where('status', VersionStatus::Pending->value)->first();
         // return response()->json($version);
         if(!$version) {
-          return response()->json([]);
+          return response()->json(['message' => 'No records found']);
         }
 
         return response()->json([

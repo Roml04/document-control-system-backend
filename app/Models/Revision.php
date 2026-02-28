@@ -22,4 +22,8 @@ class Revision extends Model
     public function user() {
       return $this->belongsTo(User::class);
     }
+
+    public function version() {
+      return $this->hasOne(Version::class);
+    }
 }
