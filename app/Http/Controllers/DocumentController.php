@@ -45,6 +45,10 @@ class DocumentController extends Controller
           $document->select('id', 'name');
         }])->where(['document_id' => $document['id'], 'status' => VersionStatus::Approved->value])->latest()->first();
 
+        if(!$version) {
+          return response()->json(['message' => "No record with an ID of " . $document['id'] . " and an approved status exists in the database"], 500);
+        }
+
         return response()->json(['data' => [
           'id' => $version['id'],
           'originator' => $version['originator'],
