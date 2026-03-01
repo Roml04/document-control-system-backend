@@ -23,6 +23,7 @@ class VersionSeeder extends Seeder
             "approved_date" => "2026-02-28",
             "document_id" => 1,
             "file_path" => "/to/versions",
+            "filename" => "wastemanagementproc",
             "status" => "approved",
             "revision_id" => null
           ],
@@ -36,6 +37,7 @@ class VersionSeeder extends Seeder
             "approved_date" => "2026-02-28",
             "document_id" => 2,
             "file_path" => "/to/versions",
+            "filename" => "hrproc",
             "status" => "approved",
             "revision_id" => null
           ],
@@ -49,6 +51,7 @@ class VersionSeeder extends Seeder
             "approved_date" => "2026-02-28",
             "document_id" => 3,
             "file_path" => "/to/versions",
+            "filename" => "documentcontolproc",
             "status" => "approved",
             "revision_id" => null
           ],

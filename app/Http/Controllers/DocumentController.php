@@ -81,7 +81,7 @@ class DocumentController extends Controller
         //
     }
     
-    public function updateVersion(Document $document, Revision $revision) {
+    public function editVersion(Document $document, Revision $revision) {
       $version = Version::where(['document_id' => $document['id']])->latest()->first();
         
       return response()->json(["revision" => $revision, "version" => $version, "document" => $document]);

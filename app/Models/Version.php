@@ -16,6 +16,7 @@ class Version extends Model
       'approved_date',
       'document_id',
       'file_path',
+      'filename',
       'status',
       'revision_id'
     ];

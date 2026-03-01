@@ -42,24 +42,29 @@ class VersionController extends Controller
             'approver' => ['nullable', 'string'],
             'approvedDate' => ['nullable', 'string'],
             'documentId' => ['required'],
-            'filePath' => ['nullable', 'string'],
+            'file' => ['required', 'file'],
+            'fileName' => ['required', 'string'],
             'status' => ['required', new Enum(VersionStatus::class)]
           ]);
 
-        $version = Version::create([
-          'originator' => $validated['originator'],
-          'department' => $validated['department'],
-          'revision_number' => $validated['revisionNumber'] ?? null,
-          'revision_details' => $validated['revisionDetails'] ?? null,
-          'revision_date' => $validated['revisionDate'] ?? null,
-          'approver' => $validated['approver'] ?? null,
-          'approved_date' => $validated['approvedDate'] ?? null,
-          'document_id' => $validated['documentId'],
-          'file_path' => $validated['filePath'] ?? null,
-          'status' => $validated['status']
-        ]);
+          $path = $request->file('file')->storeAs('', );
 
-        return response()->json($version['status']);
+          return response()->json($path);
+
+          $version = Version::create([
+            'originator' => $validated['originator'],
+            'department' => $validated['department'],
+            'revision_number' => $validated['revisionNumber'] ?? null,
+            'revision_details' => $validated['revisionDetails'] ?? null,
+            'revision_date' => $validated['revisionDate'] ?? null,
+            'approver' => $validated['approver'] ?? null,
+            'approved_date' => $validated['approvedDate'] ?? null,
+            'document_id' => $validated['documentId'],
+            'file_path' => $validated['filePath'] ?? null,
+            'status' => $validated['status']
+          ]);
+
+          return response()->json($version['status']);  
         } catch (Throwable $error) {
           return response()->json(['message' => $error->getMessage()], 500);
         }
