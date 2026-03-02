@@ -16,18 +16,12 @@ class DocumentSeeder extends Seeder
         $documents = [
           [
             "name" => "Waste Management Procedure",
-            "type" => "wastemanagement",
-            "file_path" => "/to/documents"
           ],
           [
             "name" => "HR Procedure",
-            "type" => "hrprocedure",
-            "file_path" => "/to/documents"
           ],
           [
             "name" => "Document Control Procedure",
-            "type" => "documentcontrol",
-            "file_path" => "/to/documents"
           ],
         ];
 

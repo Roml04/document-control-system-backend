@@ -6,6 +6,7 @@ use App\Enums\VersionStatus;
 use App\Models\Document;
 use App\Models\Version;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rules\Enum;
 use Throwable;
 
@@ -34,22 +35,33 @@ class VersionController extends Controller
     {
         try {
           $validated = $request->validate([
-            'originator' => ['required', 'string'],
-            'department' => ['required', 'string'],
+            'originator' => ['nullable', 'string'],
+            'department' => ['nullable', 'string'],
             'revisionNumber' => ['nullable', 'string'],
             'revisionDetails' => ['nullable', 'string'],
             'revisionDate' => ['nullable', 'string'],
             'approver' => ['nullable', 'string'],
             'approvedDate' => ['nullable', 'string'],
             'documentId' => ['required'],
+            'revisionId' => ['required'],
             'file' => ['required', 'file'],
             'fileName' => ['required', 'string'],
             'status' => ['required', new Enum(VersionStatus::class)]
           ]);
 
-          $path = $request->file('file')->storeAs('', );
+          $file = $validated['file'];
 
-          return response()->json($path);
+          $fileExtension = $file->getClientOriginalExtension();
+
+          $fileName = strtolower(str_replace(' ', '', $validated['fileName'])) . '-' . Date::now()->format('YmdHi') . "." . $fileExtension;
+          
+          $path = $request->file('file')->storeAs('pending', $fileName);
+
+          return response()->json(['test' => [
+            'path' => $path,
+            'filename' => $fileName,
+            'status' => VersionStatus::Pending->value
+          ]]);
 
           $version = Version::create([
             'originator' => $validated['originator'],
@@ -60,8 +72,9 @@ class VersionController extends Controller
             'approver' => $validated['approver'] ?? null,
             'approved_date' => $validated['approvedDate'] ?? null,
             'document_id' => $validated['documentId'],
-            'file_path' => $validated['filePath'] ?? null,
-            'status' => $validated['status']
+            'revision_id' => $validated['revisionId'],
+            'file_path' => $path ?? null,
+            'status' => VersionStatus::Pending->value
           ]);
 
           return response()->json($version['status']);  

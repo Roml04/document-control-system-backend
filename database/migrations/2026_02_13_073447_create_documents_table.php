@@ -14,8 +14,6 @@ return new class extends Migration
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('type', ['wastemanagement', 'hrprocedure', 'documentcontrol']);
-            $table->string('file_path');
             $table->timestamps();
         });
     }
