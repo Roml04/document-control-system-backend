@@ -55,7 +55,7 @@ class VersionController extends Controller
 
           $fileName = strtolower(str_replace(' ', '', $validated['fileName'])) . '-' . Date::now()->format('YmdHi') . "." . $fileExtension;
           
-          $path = $request->file('file')->storeAs('pending', $fileName);
+          $path = $request->file('file')->storeAs('pending', $fileName, 'public');
 
           $version = Version::create([
             'originator' => $validated['originator'] ?? null,
