@@ -15,18 +15,18 @@ return new class extends Migration
     {
         Schema::create('versions', function (Blueprint $table) {
             $table->id();
-            $table->string('originator');
-            $table->string('department');
+            $table->string('originator')->nullable();
+            $table->string('department')->nullable();
             $table->string('revision_number')->nullable();
             $table->string('revision_details')->nullable();
             $table->date('revision_date')->nullable();
             $table->string('approver')->nullable();
             $table->date('approved_date')->nullable();
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
-            $table->string('file_path')->nullable();
+            $table->string('file_path');
             $table->string('filename');
             $table->enum('status', ['pending_approval', 'approved']);
-            $table->foreignId('revision_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('revision_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

@@ -57,15 +57,9 @@ class VersionController extends Controller
           
           $path = $request->file('file')->storeAs('pending', $fileName);
 
-          return response()->json(['test' => [
-            'path' => $path,
-            'filename' => $fileName,
-            'status' => VersionStatus::Pending->value
-          ]]);
-
           $version = Version::create([
-            'originator' => $validated['originator'],
-            'department' => $validated['department'],
+            'originator' => $validated['originator'] ?? null,
+            'department' => $validated['department'] ?? null,
             'revision_number' => $validated['revisionNumber'] ?? null,
             'revision_details' => $validated['revisionDetails'] ?? null,
             'revision_date' => $validated['revisionDate'] ?? null,
@@ -74,7 +68,8 @@ class VersionController extends Controller
             'document_id' => $validated['documentId'],
             'revision_id' => $validated['revisionId'],
             'file_path' => $path ?? null,
-            'status' => VersionStatus::Pending->value
+            'filename' => $fileName,
+            'status' => $validated['status'],
           ]);
 
           return response()->json($version['status']);  
@@ -116,6 +111,7 @@ class VersionController extends Controller
           'revisionDate' => $version['revision_date'],
           'approver' => $version['approver'],
           'approvedDate' => $version['approved_date'],
+          'filePath' => "http://localhost/" . $version['file_path'],
         ]);
 
       } catch(Throwable $error) {

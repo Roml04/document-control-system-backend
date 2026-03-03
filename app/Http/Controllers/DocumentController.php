@@ -48,26 +48,33 @@ class DocumentController extends Controller
      */
     public function show(Document $document)
     {
-      try {        // $document = Version::where('document_id', $id)->latest()->first();
+      try {        
+        // $document = Version::where('document_id', $id)->latest()->first();
         $version = Version::with(['document' => function($document) {
           $document->select('id', 'name');
         }])->where(['document_id' => $document['id'], 'status' => VersionStatus::Approved->value])->latest()->first();
 
         if(!$version) {
-          return response()->json(['message' => "No record with an ID of " . $document['id'] . " and an approved status exists in the database"], 500);
+          return response()->json($version);
         }
 
-        return response()->json(['data' => [
-          'id' => $version['id'],
-          'originator' => $version['originator'],
-          'department' => $version['department'],
-          'revisionNumber' => $version['revision_number'],
-          'revisionDetails' => $version['revision_details'],
-          'revisionDate' => $version['revision_date'],  
-          'approver' => $version['approver'],
-          'approvedDate' => $version['approved_date'],
-          'document' => $version['document']
-        ]]);
+        return response()->json([
+          'document' => $version['document'],
+          'version' => [
+            'id' => $version['id'],
+            'originator' => $version['originator'],
+            'department' => $version['department'],
+            'revisionNumber' => $version['revision_number'],
+            'revisionDetails' => $version['revision_details'],
+            'revisionDate' => $version['revision_date'],  
+            'approver' => $version['approver'],
+            'approvedDate' => $version['approved_date'],
+            'userId' => $version['user_id'],
+            'filePath' => "http://localhost/storage/" . $version['file_path'],
+            'fileName' => $version['filename'],
+          ],          
+        ]);
+
       } catch (Throwable $error) {
         return response()->json(['message' => $error->getMessage()], 500);
       }
