@@ -96,7 +96,7 @@ class VersionController extends Controller
           'document_id' => ['required'],
         ]);
 
-        $version = Version::where(['document_id' => $validated['document_id'], 'status' => VersionStatus::Approved->value])->first();
+        $version = Version::where(['document_id' => $validated['document_id'], 'status' => VersionStatus::Approved->value])->latest()->first();
 
         if(!$version) {
           return response()->json([]);
@@ -111,7 +111,8 @@ class VersionController extends Controller
           'revisionDate' => $version['revision_date'],
           'approver' => $version['approver'],
           'approvedDate' => $version['approved_date'],
-          'filePath' => "http://localhost/" . $version['file_path'],
+          'filePath' => "http://localhost/storage/" . $version['file_path'],
+          'fileName' => $version['filename'],
         ]);
 
       } catch(Throwable $error) {
@@ -125,6 +126,7 @@ class VersionController extends Controller
       try {
         $version = Version::where(['document_id' => $document['id'], 'status' => VersionStatus::Pending->value])->latest()->first();
 
+        $approvedFile = Version::where(['document_id' => $document['id'], 'status' => VersionStatus::Approved->value])->latest()->first();
         // $version = $document->version->where('status', VersionStatus::Pending->value)->first();
         // return response()->json($version);
         if(!$version) {
@@ -140,6 +142,8 @@ class VersionController extends Controller
           'revisionDate' => $version['revision_date'],
           'approver' => $version['approver'],
           'approvedDate' => $version['approved_date'],
+          'approvedFilePath' => $approvedFile['file_path'],
+          'approvedFileName' => $approvedFile['filename'],
         ]);
       } catch (Throwable $error) {
         return response()->json(['message' => $error->getMessage()]);
