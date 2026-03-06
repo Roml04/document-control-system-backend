@@ -55,7 +55,7 @@ class DocumentController extends Controller
         }])->where(['document_id' => $document['id'], 'status' => VersionStatus::Approved->value])->latest()->first();
 
         if(!$version) {
-          return response()->json($version);
+          return response()->json(['document' => $document, 'version' => null]);
         }
 
         return response()->json([
@@ -66,7 +66,7 @@ class DocumentController extends Controller
             'department' => $version['department'],
             'revisionNumber' => $version['revision_number'],
             'revisionDetails' => $version['revision_details'],
-            'revisionDate' => $version['revision_date'],  
+            'revisionDate' => $version['revision_date'],
             'approver' => $version['approver'],
             'approvedDate' => $version['approved_date'],
             'userId' => $version['user_id'],
@@ -96,9 +96,27 @@ class DocumentController extends Controller
         //
     }
     
-    public function updateVersion(Document $document, Revision $revision) {
+    public function editVersion(Document $document, Revision $revision) {
       $version = Version::where(['document_id' => $document['id']])->latest()->first();
-        
-      return response()->json(["revision" => $revision, "version" => $version, "document" => $document]);
+
+      return response()->json([
+        "revision" => $revision, 
+        "version" => [
+          "id" => $version['id'],
+          "originator" => $version['originator'],
+          "department" => $version['department'],
+          "revisionNumber" => $version['revision_number'],
+          "revisionDetails" => $version['revision_details'],
+          "revisionDate" => $version['revision_date'],
+          "approver" => $version['approver'],
+          "approvedDate" => $version['approved_date'],
+          "documentId" => $version['document_id'],
+          "filePath" => $version['file_path'],
+          "fileName" => $version['filename'],
+          "status" => $version['status'],
+          "revisionId" => $version['revision_id']
+        ], 
+        "document" => $document
+      ]);
     }
 }

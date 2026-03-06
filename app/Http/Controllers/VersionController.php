@@ -44,18 +44,27 @@ class VersionController extends Controller
             'approvedDate' => ['nullable', 'string'],
             'documentId' => ['required'],
             'revisionId' => ['required'],
-            'file' => ['required', 'file'],
-            'fileName' => ['required', 'string'],
+            'file' => ['nullable', 'file'],
+            'filePath' => ['nullable', 'string'],
+            'fileName' => ['nullable', 'string'],
             'status' => ['required', new Enum(VersionStatus::class)]
           ]);
 
-          $file = $validated['file'];
+          $path = $validated['filePath'] ?? null;
+          $fileName = $validated['fileName'];
 
-          $fileExtension = $file->getClientOriginalExtension();
+          if ($request->hasFile('file')) {
 
-          $fileName = strtolower(str_replace(' ', '', $validated['fileName'])) . '-' . Date::now()->format('YmdHi') . "." . $fileExtension;
-          
-          $path = $request->file('file')->storeAs('pending', $fileName, 'public');
+            $file = $request->file('file');
+
+            $fileExtension = $file->getClientOriginalExtension();
+
+            $fileName = strtolower(str_replace(' ', '', $validated['fileName']))
+                . '-' . Date::now()->format('YmdHi')
+                . "." . $fileExtension;
+
+            $path = $file->storeAs('pending', $fileName, 'public');
+          }
 
           $version = Version::create([
             'originator' => $validated['originator'] ?? null,
@@ -67,10 +76,12 @@ class VersionController extends Controller
             'approved_date' => $validated['approvedDate'] ?? null,
             'document_id' => $validated['documentId'],
             'revision_id' => $validated['revisionId'],
-            'file_path' => $path ?? null,
+            'file_path' => $path,
             'filename' => $fileName,
             'status' => $validated['status'],
           ]);
+
+          return response()->json(['createdVersion' => $version]);
 
           return response()->json($version['status']);  
         } catch (Throwable $error) {
@@ -188,9 +199,10 @@ class VersionController extends Controller
           'status' => $validated['status'],
         ]);
 
-      return response()->json([
-        'message' => 'Updated document details submitted successfully',
-      ]);
+        return response()->json([
+          'message' => 'Updated document details submitted successfully',
+        ]);
+
       } catch(Throwable $error) {
         return response()->json(['message' => $error->getMessage()], 500);
       }
