@@ -33,61 +33,7 @@ class VersionController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-          $validated = $request->validate([
-            'originator' => ['nullable', 'string'],
-            'department' => ['nullable', 'string'],
-            'revisionNumber' => ['nullable', 'string'],
-            'revisionDetails' => ['nullable', 'string'],
-            'revisionDate' => ['nullable', 'date'],
-            'approver' => ['nullable', 'string'],
-            'approvedDate' => ['nullable', 'date'],
-            'documentId' => ['required'],
-            'revisionId' => ['required'],
-            'file' => ['nullable', 'file'],
-            'filePath' => ['nullable', 'string'],
-            'fileName' => ['nullable', 'string'],
-            'status' => ['required', new Enum(VersionStatus::class)]
-          ]);
-
-          
-          $path = $validated['filePath'] ?? null;
-          $fileName = $validated['fileName'] ?? null;
-          
-          if ($request->hasFile('file')) {
-
-            $file = $request->file('file');
-
-            $fileExtension = $file->getClientOriginalExtension();
-
-            $fileName = strtolower(str_replace(' ', '', $validated['fileName']))
-                . '-' . Date::now()->format('YmdHi')
-                . "." . $fileExtension;
-
-            $path = $file->storeAs('pending', $fileName, 'public');
-          }
-
-          $version = Version::create([
-            'originator' => $validated['originator'] ?? null,
-            'department' => $validated['department'] ?? null,
-            'revision_number' => $validated['revisionNumber'] ?? null,
-            'revision_details' => $validated['revisionDetails'] ?? null,
-            'revision_date' => $validated['revisionDate'] ?? null,
-            'approver' => $validated['approver'] ?? null,
-            'approved_date' => $validated['approvedDate'] ?? null,
-            'document_id' => $validated['documentId'],
-            'revision_id' => $validated['revisionId'],
-            'file_path' => $path,
-            'filename' => $fileName,
-            'status' => $validated['status'],
-          ]);
-
-          return response()->json(['createdVersion' => $version]);
-
-          return response()->json($version['status']);  
-        } catch (Throwable $error) {
-          return response()->json(['message' => $error->getMessage()], 500);
-        }
+        //
     }
 
     /**
@@ -96,70 +42,6 @@ class VersionController extends Controller
     public function show(Version $version)
     {
         //
-    }
-    
-    /**
-     * Display the latest resource.
-     */
-    public function showLatest(Request $request)
-    {
-      try {
-        $validated = $request->validate([
-          'document_id' => ['required'],
-        ]);
-
-        $version = Version::where(['document_id' => $validated['document_id'], 'status' => VersionStatus::Approved->value])->latest()->first();
-
-        if(!$version) {
-          return response()->json([]);
-        }
-
-        return response()->json([
-          'id' => $version['id'],
-          'originator' => $version['originator'],
-          'department' => $version['department'],
-          'revisionNumber' => $version['revision_number'],
-          'revisionDetails' => $version['revision_details'],
-          'revisionDate' => $version['revision_date'],
-          'approver' => $version['approver'],
-          'approvedDate' => $version['approved_date'],
-          'filePath' => "http://localhost/storage/" . $version['file_path'],
-          'fileName' => $version['filename'],
-        ]);
-
-      } catch(Throwable $error) {
-        return response()->json(['message' => $error->getMessage()], 500);
-      }
-
-    }
-
-    public function showPending(Document $document) {
-
-      try {
-        $version = Version::where(['document_id' => $document['id'], 'status' => VersionStatus::Pending->value])->latest()->first();
-
-        $approvedFile = Version::where(['document_id' => $document['id'], 'status' => VersionStatus::Approved->value])->latest()->first();
-        // $version = $document->version->where('status', VersionStatus::Pending->value)->first();
-        // return response()->json($version);
-        if(!$version) {
-          return response()->json(['message' => 'No records found']);
-        }
-
-        return response()->json([
-          'id' => $version['id'],
-          'originator' => $version['originator'],
-          'department' => $version['department'],
-          'revisionNumber' => $version['revision_number'],
-          'revisionDetails' => $version['revision_details'],
-          'revisionDate' => $version['revision_date'],
-          'approver' => $version['approver'],
-          'approvedDate' => $version['approved_date'],
-          'approvedFilePath' => $approvedFile['file_path'],
-          'approvedFileName' => $approvedFile['filename'],
-        ]);
-      } catch (Throwable $error) {
-        return response()->json(['message' => $error->getMessage()]);
-      }
     }
 
     /**
@@ -175,38 +57,7 @@ class VersionController extends Controller
      */
     public function update(Request $request, Version $version)
     {
-      try {
-        $validated = $request->validate([
-          'originator' => ['required', 'string'], 
-          'department' => ['required', 'string'],
-          'revisionNumber' => ['required', 'string'],
-          'revisionDetails' => ['required', 'string'],
-          'revisionDate' => ['required', 'string'],
-          'approver' => ['nullable', 'string'],
-          'approvedDate' => ['nullable', 'string'],
-          'filePath' => ['nullable', 'string'],
-          'status' => ['required', new Enum(VersionStatus::class)]
-        ]);
-
-        $version->update([
-          'originator' => $validated['originator'],
-          'department' => $validated['department'],
-          'revision_number' => $validated['revisionNumber'],
-          'revision_details' => $validated['revisionDetails'],
-          'revision_date' => $validated['revisionDate'],
-          'approver' => $validated['approver'],
-          'approved_date' => $validated['approvedDate'],
-          'file_path' => $validated['filePath'],
-          'status' => $validated['status'],
-        ]);
-
-        return response()->json([
-          'message' => 'Updated document details submitted successfully',
-        ]);
-
-      } catch(Throwable $error) {
-        return response()->json(['message' => $error->getMessage()], 500);
-      }
+      //
     }
 
     /**
