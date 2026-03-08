@@ -39,9 +39,9 @@ class VersionController extends Controller
             'department' => ['nullable', 'string'],
             'revisionNumber' => ['nullable', 'string'],
             'revisionDetails' => ['nullable', 'string'],
-            'revisionDate' => ['nullable', 'string'],
+            'revisionDate' => ['nullable', 'date'],
             'approver' => ['nullable', 'string'],
-            'approvedDate' => ['nullable', 'string'],
+            'approvedDate' => ['nullable', 'date'],
             'documentId' => ['required'],
             'revisionId' => ['required'],
             'file' => ['nullable', 'file'],
@@ -50,9 +50,10 @@ class VersionController extends Controller
             'status' => ['required', new Enum(VersionStatus::class)]
           ]);
 
+          
           $path = $validated['filePath'] ?? null;
-          $fileName = $validated['fileName'];
-
+          $fileName = $validated['fileName'] ?? null;
+          
           if ($request->hasFile('file')) {
 
             $file = $request->file('file');
