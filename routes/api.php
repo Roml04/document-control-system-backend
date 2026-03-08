@@ -7,17 +7,21 @@ use App\Http\Controllers\VersionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [UserController::class, 'store']);
-
-Route::controller(UserController::class)->group(function() {
-  Route::post('/user', 'show');
+Route::prefix('auth')->controller(UserController::class)->group(function() {
+  Route::post('/register', [UserController::class, 'register']);
+  Route::post('/login', [UserController::class, 'login']);
 });
 
-Route::controller(DocumentController::class)->group(function() {
-  Route::get('/document', 'index');
-  Route::post('/document', 'store');
-  Route::get('/document/{document}', 'show');
-  Route::get('/document/{document}/revision/{revision}', 'editVersion');
+Route::prefix('document')->controller(DocumentController::class)->group(function() {
+  Route::post('/', 'index');
+  Route::post('/create', 'store');
+  Route::post('/{document}', 'show');
+  Route::put('/{document}', 'update');
+  Route::delete('/{document}', 'destroy');
+  
+  Route::prefix('{document}/version')->controller(VersionController::class)->group(function() {
+    //routes
+  });
 });
 
 // Route::middleware(['auth:sanctum'])->group(function() {
