@@ -111,7 +111,7 @@ class DocumentController extends Controller
           "approver" => $version['approver'],
           "approvedDate" => $version['approved_date'],
           "documentId" => $version['document_id'],
-          "filePath" => $version['file_path'],
+          "filePath" => 'http://localhost/storage/' . $version['file_path'],
           "fileName" => $version['filename'],
           "status" => $version['status'],
           "revisionId" => $version['revision_id']
