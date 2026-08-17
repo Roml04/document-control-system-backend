@@ -1,12 +1,22 @@
 <?php
 
+use App\Models\File;
+use App\Models\Request;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
-use Symfony\Component\HttpFoundation\Request;
 
 Route::get('/', function () {
-    return "The backend is running...";
+    return 'The backend is running...';
 });
 
-Route::post('/login', function (Request $request) {
-  abort(403);
+Route::get('/login', function () {
+    // $users = User::all(["first_name", "last_name"]);
+
+    // $files = File::all(["title", "type"]);
+    // $file = File::where('id', 1)->first();
+
+    // $request = Request::where('id', 1)->first();
+
+    // return $file->version;
+    abort(403);
 });

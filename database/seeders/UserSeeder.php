@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
@@ -13,37 +12,48 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-      $users = [
-        [
-          'first_name' => 'Ayaka',
-          'last_name' => 'Hirose',
-          'email' => 'hirose@gmail.com',
-          'role' => 'originator',
-        ],
-        [
-          'first_name' => 'Itsuki',
-          'last_name' => 'Ishikawa',
-          'email' => 'itsuki@gmail.com',
-          'role' => 'originator',
-        ],
-        [
-          'first_name' => 'Akiro',
-          'last_name' => 'Kagutsuki',
-          'email' => 'akiro@gmail.com',
-          'role' => 'coordinator',
-        ],
-        [
-          'first_name' => 'Haru',
-          'last_name' => 'Lumino',
-          'email' => 'lumino@gmail.com',
-          'role' => 'superior',
-        ],
-        
-      ];
-      
-      foreach($users as $user) {
-        User::create([...$user, "password" => bcrypt('password123')]);
-      }
+        $users = [
+            [
+                'email' => 'hirose@gmail.com',
+                'password' => bcrypt('ayaka123'),
+                'first_name' => 'Ayaka',
+                'last_name' => 'Hirose',
+                'role' => 'originator',
+            ],
+            [
+                'email' => 'itsuki@gmail.com',
+                'password' => bcrypt('itsuki123'), 
+                'first_name' => 'Itsuki',
+                'last_name' => 'Ishikawa',
+                'role' => 'originator',
+            ],
+            [
+                'email' => 'akiro@gmail.com',
+                'password' => bcrypt('akiro123'), 
+                'first_name' => 'Akiro',
+                'last_name' => 'Kagutsuki',
+                'role' => 'coordinator',
+            ],
+            [
+                'email' => 'lumino@gmail.com',
+                'password' => bcrypt('lumino123'), 
+                'first_name' => 'Haru',
+                'last_name' => 'Lumino',
+                'role' => 'superior',
+            ],
+            [
+                'email' => 'zyrion@gmail.com',
+                'password' => bcrypt('zyrion123'), 
+                'first_name' => 'Zyrion',
+                'last_name' => 'Luxelle',
+                'role' => 'manager',
+            ],
+
+        ];
+
+        foreach ($users as $user) {
+            User::create($user);
+        }
 
     }
 }

@@ -2,38 +2,36 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Version extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-      'originator', 
-      'department', 
-      'revision_number',
-      'revision_details',
-      'revision_date',
-      'approver',
-      'approved_date',
-      'document_id',
-      'file_path',
-      'filename',
-      'status',
-      'revision_id'
+        'originator',
+        'department',
+        'revision_number',
+        'revision_details',
+        'upload_date',
+        'revision_date',
+        'approver',
+        'approved_date',
+        'status',
+        'file_name',
+        'file_path',
+        'file_id',
+        'request_id'
     ];
 
-    public function document() {
-      return $this->belongsTo(Document::class);
+    public function file()
+    {
+        return $this->belongsTo(File::class);
     }
 
-    public function originatorUser() {
-      return $this->belongsTo(User::class, 'originator');
-    }
-
-    public function approverUser() {
-      return $this->belongsTo(User::class, 'approver');
-    }
-
-    public function revision() {
-      return $this->belongsTo(Revision::class);
+    public function request()
+    {
+        return $this->belongsTo(Request::class);
     }
 }

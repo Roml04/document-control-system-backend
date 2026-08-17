@@ -1,10 +1,8 @@
 <?php
 
-use App\Enums\VersionStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\Rules\Enum;
 
 return new class extends Migration
 {
@@ -15,18 +13,19 @@ return new class extends Migration
     {
         Schema::create('versions', function (Blueprint $table) {
             $table->id();
-            $table->string('originator')->nullable();
+            $table->string('originator');
             $table->string('department')->nullable();
             $table->string('revision_number')->nullable();
             $table->string('revision_details')->nullable();
+            $table->date('upload_date');
             $table->date('revision_date')->nullable();
-            $table->string('approver')->nullable();
+            $table->string('approver');
             $table->date('approved_date')->nullable();
-            $table->foreignId('document_id')->constrained()->onDelete('cascade');
+            $table->enum('status', ['pending', 'published', 'rejected']);
+            $table->string('file_name');
             $table->string('file_path');
-            $table->string('filename');
-            $table->enum('status', ['pending_approval', 'approved']);
-            $table->foreignId('revision_id')->constrained()->onDelete('cascade');
+            $table->foreignId('file_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('request_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

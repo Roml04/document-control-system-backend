@@ -11,14 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('revisions', function (Blueprint $table) {
+        Schema::create('requests', function (Blueprint $table) {
             $table->id();
+            $table->enum('type', ['upl', 'rev', 'resub']);
             $table->string('title');
-            $table->text('reason');
-            $table->enum('status', ['coordinator_approval', 'originator_edit ', 'superior_approval', 'approved', 'denied'])->nullable();
+            $table->string('reason');
+            $table->enum('status', ['coordinator_approval', 'originator_edit', 'superior_approval', 'managers_approval', 'approved', 'denied']);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('document_id')->constrained()->onDelete('cascade');
-            $table->string('comment')->nullable();
             $table->timestamps();
         });
     }
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('revisions');
+        Schema::dropIfExists('requests');
     }
 };
