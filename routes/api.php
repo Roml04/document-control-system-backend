@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->group(function() {
   Route::get('/logout', [AuthController::class, 'logout']);
 
   Route::prefix('request')->controller(RequestController::class)->group(function() {
-    Route::post("/", 'index');
+    Route::get("/", 'index');
     Route::post('/create', 'store');
   });
 
