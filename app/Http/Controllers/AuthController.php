@@ -57,9 +57,17 @@ class AuthController extends Controller
       ]);
     }
 
+    if($user->role === "guest") {
+      return response()->json([
+        "ok" => false,
+        "message" => "Your account role has not been assigned yet. Please contact your system administrator."
+      ]);
+    }
+
     $now = now()->format('Y-m-d-H-i-s');
 
     $token = $user->createToken("user-$user->id-$now")->plainTextToken;
+    $userId = $user->id;
     $firstName = $user->first_name;
     $lastName = $user->last_name;
     $role = $user->role;
@@ -67,6 +75,7 @@ class AuthController extends Controller
     return response()->json([
       'ok' => true,
       'data' => [
+        'userId' => $userId,
         'firstName' => $firstName,
         'lastName' => $lastName,
         'role' => $role,
