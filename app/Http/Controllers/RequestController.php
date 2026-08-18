@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,14 +12,36 @@ class RequestController extends Controller
 {
   public function index(Request $request) {
     $requestingUserId = $request->user()->id;
+    $requestingUser = $request->user()->firstName;
 
     /**
      * Return all request if user is sysadmin
      */
 
-    $requestsByUser = RequestModel::where('id', $requestingUserId)->get();
+    $user = $request->user();
+    $requests = $user->request;
 
-    return response()->json($requestsByUser);
+    $requestsByUser = $requests->sortByDesc("created_at")->map(function($requestItem) use($user) {
+      return [
+        "id" => $requestItem["id"],
+        "type" => $requestItem["type"],
+        "title" => $requestItem["title"],
+        "reason" => $requestItem["reason"],
+        "status" => $requestItem["status"],
+        "uploadDate" => $requestItem["created_at"]->format("F j, Y g:ia"),
+        "user" => [
+          "id" => $user->id,
+          "firstName" => $user->first_name,
+          "lastName" => $user->last_name
+        ],
+      ];
+    })->values();
+
+    return response()->json([
+      "ok" => true,
+      "data" => $requestsByUser,
+      "message" => "Successfully retrieved requests from $user->first_name $user->last_name [$user->id]"
+    ]);
 
   }
   public function store(Request $request) {
