@@ -15,6 +15,8 @@ class VersionSeeder extends Seeder
     {
         $versions = [
           [
+            "file_title" => "IT Checklist",
+            "file_type" => "checklist",
             "originator" => "Ayaka Hirose",
             "department" => "Administration",
             "revision_number" => "upl-1",

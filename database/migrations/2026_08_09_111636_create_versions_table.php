@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('versions', function (Blueprint $table) {
             $table->id();
+            $table->string("file_title");
+            $table->enum("file_type", ["document", "form", "checklist"]);
             $table->string('originator');
             $table->string('department')->nullable();
             $table->string('revision_number')->nullable();

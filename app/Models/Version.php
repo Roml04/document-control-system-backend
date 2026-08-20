@@ -10,6 +10,8 @@ class Version extends Model
     use HasFactory;
 
     protected $fillable = [
+        'file_title',
+        'file_type',
         'originator',
         'department',
         'revision_number',

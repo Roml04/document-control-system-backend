@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\DB;
 class RequestController extends Controller
 {
   public function index(Request $request) {
-    $requestingUserId = $request->user()->id;
-    $requestingUser = $request->user()->firstName;
-
     /**
      * Return all request if user is sysadmin
      */
@@ -44,6 +41,7 @@ class RequestController extends Controller
     ]);
 
   }
+  
   public function store(Request $request) {
 
     /**
