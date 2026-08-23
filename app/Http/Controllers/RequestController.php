@@ -4,12 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Request as RequestModel;
 use App\Models\Version;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RequestController extends Controller
-{
+{ 
   public function index(Request $request) {
     /**
      * Return all request if user is sysadmin
@@ -31,6 +30,9 @@ class RequestController extends Controller
           "firstName" => $user->first_name,
           "lastName" => $user->last_name
         ],
+        "version" => [
+          "id" => $requestItem->version->id
+        ]
       ];
     })->values();
 
