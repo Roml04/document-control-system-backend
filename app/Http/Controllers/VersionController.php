@@ -6,6 +6,7 @@ use App\Models\Request as RequestModel;
 use App\Models\Version;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Storage;
 
 class VersionController extends Controller
 {
@@ -44,5 +45,17 @@ class VersionController extends Controller
       ], "message" => "Retrieved version id [" . $version->id . "]"]);
 
       // Version::where("id", )
+    }
+
+    public function viewFile(Version $version) {
+      $filePath = $version->file_path;
+
+      if(Storage::missing($filePath)) {
+        return response()->json([
+          "message" => "The file does not exist in the system"
+        ], 404);
+      }
+
+      return Storage::response($filePath);
     }
 }

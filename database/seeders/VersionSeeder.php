@@ -27,7 +27,7 @@ class VersionSeeder extends Seeder
             "approved_date" => fake()->date(),
             "status" => "pending",
             "file_name" => fake()->sentence(),
-            "file_path" => fake()->filePath(),
+            "file_path" => "",
             "file_id" => 1,
             "request_id" => 1
           ]
