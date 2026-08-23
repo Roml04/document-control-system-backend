@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use Carbon\Carbon;
+use GuzzleHttp\Psr7\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,7 +33,7 @@ class RequestController extends Controller
           "lastName" => $user->last_name
         ],
         "version" => [
-          "id" => $requestItem->version->id
+          "id" => $requestItem->version->id ?? null
         ]
       ];
     })->values();
@@ -49,7 +51,6 @@ class RequestController extends Controller
     /**
      * Retrieves the id of the authenticated user.
      */
-    $requestingUserId = $request->user()->id;
 
     $validated = $request->validate([
       "type" => ["required", "in:upl,rev,resub"],
@@ -61,9 +62,12 @@ class RequestController extends Controller
       "revisionNumber" => ["required", "string"],
       "revisionDetails" => ["required", "string"],
       "approver" => ["required", "string"],
-      "fileName" => ["required", "string"],
       "fileId" => ["nullable", "exists:files,id"],
+      "fileTitle" => ["required","string"],
+      "fileType" => ["in:document,checklist,form"],
+      "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
       
+      // "fileName" => ["required", "string"],
       // "requestStatus" => ["required", "in:coordinator_approval,originator_edit,superior_approval,managers_approval,approved, denied"],
       // "uploadDate" => ["nullable", "date_format:Y-m-d"],
       // "revisionDate" => ["nullable", "date_format:Y-m-d"],
@@ -75,28 +79,54 @@ class RequestController extends Controller
     /**
      * Switch statement to alter the flow depending on whether the type is upl, rev, or resub
      */
+    $user = $request->user();
+    $requestingUserId = $user->id;
 
-    DB::transaction(function() use($validated, $requestingUserId) {
+    $uploadedFile = $request->file("file");
+
+    $uploadedFile->getClientOriginalExtension();
+
+    $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . $uploadedFile->getClientOriginalExtension();
+    $filePath = $uploadedFile->storeAs('versions', $fileName);
+
+    // return response()->json([
+    //   "data" => $fileName
+    // ]);
+
+    $validatedWithFileInfo = [
+      ...$validated,
+      "userId" => $requestingUserId,
+      "fileName" => $fileName,
+      "filePath" => $filePath,
+    ];
+
+    // return response()->json([
+    //   "data" => $validatedWithFileInfo
+    // ]);
+
+    DB::transaction(function() use($validatedWithFileInfo) {
       $requestModel = RequestModel::create([
-        "type" => $validated["type"],
-        "title" => $validated["title"],
-        "reason" => $validated["reason"],
+        "type" => $validatedWithFileInfo["type"],
+        "title" => $validatedWithFileInfo["title"],
+        "reason" => $validatedWithFileInfo["reason"],
         "status" => "coordinator_approval",
-        "user_id" => $requestingUserId,
+        "user_id" => $validatedWithFileInfo["userId"],
       ]);
       
       Version::create([
-        "originator" => $validated["originator"],
-        "department" => $validated["department"],
-        "revision_number" => $validated["revisionNumber"],
-        "revision_details" => $validated["revisionDetails"],
+        "file_title" => $validatedWithFileInfo["fileTitle"],
+        "file_type" => $validatedWithFileInfo["fileType"],
+        "originator" => $validatedWithFileInfo["originator"],
+        "department" => $validatedWithFileInfo["department"],
+        "revision_number" => $validatedWithFileInfo["revisionNumber"],
+        "revision_details" => $validatedWithFileInfo["revisionDetails"],
         "upload_date" => now(),
         "revision_date" => now(),
-        "approver" => $validated["approver"],
+        "approver" => $validatedWithFileInfo["approver"],
         "status" => "pending",
-        "file_name" => $validated["fileName"],
-        "file_path" => "This should be determined when the file is saved in the system", 
-        "file_id" => $validated["fileId"],
+        "file_name" => $validatedWithFileInfo["fileName"],
+        "file_path" => $validatedWithFileInfo["filePath"], 
+        "file_id" => $validatedWithFileInfo["fileId"] ?? null,
         "request_id" => $requestModel->id,
       ]);
     });
@@ -104,7 +134,7 @@ class RequestController extends Controller
     return response()->json([
       "ok" => true,
       "data" => [],
-      "message" => "File Saved"
+      "message" => "Request submitted successfuly"
     ]);
   }
 }
