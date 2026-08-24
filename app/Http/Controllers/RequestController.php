@@ -17,9 +17,58 @@ class RequestController extends Controller
      */
 
     $user = $request->user();
-    $requests = $user->request;
 
-    $requestsByUser = $requests->sortByDesc("created_at")->map(function($requestItem) use($user) {
+    $requestsForApproval = DB::transaction(function() use($user) {
+
+      $requests = [];
+      
+      if($user->role === "originator") {
+        return $requests;
+      }
+
+      if($user->role === "coordinator") {
+        $requests = RequestModel::where("status", "coordinator_approval")->get();
+      }
+
+      if($user->role === "superior") {
+        $requests = RequestModel::where("status", "superior_approval")->get();
+      }
+
+      if($user->role === "manager") {
+        $requests = RequestModel::where("status", "managers_approval")->get();
+      }
+
+      if($user->role === "sysadmin") {
+        $requests = RequestModel::all();
+      }
+
+      return $requests->sortByDesc("created_at")->map(function($requestItem) {
+        $user = $requestItem->user;
+
+        return [
+          "id" => $requestItem["id"],
+          "type" => $requestItem["type"],
+          "title" => $requestItem["title"],
+          "reason" => $requestItem["reason"],
+          "status" => $requestItem["status"],
+          "uploadDate" => $requestItem["created_at"]->format("F j, Y g:ia"),
+          "user" => [
+            "id" => $user->id,
+            "firstName" => $user->first_name,
+            "lastName" => $user->last_name
+          ],
+          "version" => [
+            "id" => $requestItem->version->id ?? null
+          ]
+        ];
+      })->values();
+
+
+    });
+
+    $requestsByUser = $user->request;
+
+    $requestsByUserSorted = $requestsByUser->sortByDesc("created_at")->map(function($requestItem) use($user) {
       return [
         "id" => $requestItem["id"],
         "type" => $requestItem["type"],
@@ -40,7 +89,10 @@ class RequestController extends Controller
 
     return response()->json([
       "ok" => true,
-      "data" => $requestsByUser,
+      "data" => [
+        "myRequests" => $requestsByUserSorted,
+        "forApprovals" => $requestsForApproval
+      ],
       "message" => "Successfully retrieved requests from $user->first_name $user->last_name [$user->id]"
     ]);
 

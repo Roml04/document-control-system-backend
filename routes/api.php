@@ -31,6 +31,16 @@ Route::middleware('auth:sanctum')->group(function() {
 
 });
 
+Route::controller(VersionController::class)->group(function () {
+    Route::post('/version', 'store');
+    Route::post('/version/latest', 'showLatest');
+    Route::post('/version/pending/{document}', 'showPending');
+    Route::patch('/version/{version}', 'update');
+});
+
+Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
+    return response()->json($request->user());
+});
 
 /*
 Route::prefix('document')->controller(DocumentController::class)->group(function () {
@@ -55,14 +65,3 @@ Route::controller(RevisionController::class)->group(function () {
 });
 */
 // });
-
-Route::controller(VersionController::class)->group(function () {
-    Route::post('/version', 'store');
-    Route::post('/version/latest', 'showLatest');
-    Route::post('/version/pending/{document}', 'showPending');
-    Route::patch('/version/{version}', 'update');
-});
-
-Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-    return response()->json($request->user());
-});
