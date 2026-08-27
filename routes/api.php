@@ -20,7 +20,8 @@ Route::middleware('auth:sanctum')->group(function() {
 
   Route::prefix('request')->controller(RequestController::class)->group(function() {
     Route::get("/", 'index');
-    Route::post('/create', 'store');
+    Route::post('/create', 'store');  
+    Route::get("/{request}/version", "viewWithVersion");
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {

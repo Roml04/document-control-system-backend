@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\RequestResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
 use Carbon\Carbon;
@@ -96,6 +97,21 @@ class RequestController extends Controller
       "message" => "Successfully retrieved requests from $user->first_name $user->last_name [$user->id]"
     ]);
 
+  }
+
+  public function view(Request $request) {}
+
+  public function viewWithVersion(RequestModel $request) {
+
+    $request->load(['user:id,first_name,last_name,role', 'version:id,file_title,file_type,originator,department,revision_number,revision_details,upload_date,revision_date,approver,approved_date,file_name,file_path,file_id,request_id']);
+
+    return response()->json([
+      "ok" => true,
+      "data" => [
+        // "request" => $request
+        "request" => new RequestResource($request)
+      ]
+    ]);
   }
   
   public function store(Request $request) {
