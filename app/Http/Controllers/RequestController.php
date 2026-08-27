@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use GuzzleHttp\Psr7\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\helpers;
 
 class RequestController extends Controller
 { 
@@ -204,5 +205,37 @@ class RequestController extends Controller
       "data" => [],
       "message" => "Request submitted successfuly"
     ]);
+  }
+
+  public function update(Request $request) {
+    $validated = $request->validate([
+      "isApproved" => ["required", "bool"],
+      "userId" => ["required", "exists:users,id"],
+      "requestId" => ["required", "exists:requests,id"],
+      "comment" => ["nullable", "string"]
+    ]);
+
+    DB::transaction(function () use($validated) {
+      $requestItem = RequestModel::where("id", $validated["requestId"])->first();
+
+      RequestModel::where("id", $validated["requestId"])->update([
+        "status" => $validated["isApproved"] ? getNextStatus($requestItem->status) : "denied",
+      ]);
+
+      if($validated['comment']) {
+        /**
+         * Create comment record
+         */
+      }
+
+    });
+
+    return response()->json([
+      "ok" => true,
+      "data" => [],
+      "message" => "DID IT WORK?"
+    ]);
+
+    
   }
 }
