@@ -10,6 +10,7 @@ use GuzzleHttp\Psr7\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\helpers;
+use App\Models\Comment;
 
 class RequestController extends Controller
 { 
@@ -210,12 +211,12 @@ class RequestController extends Controller
   public function update(Request $request) {
     $validated = $request->validate([
       "isApproved" => ["required", "bool"],
-      "userId" => ["required", "exists:users,id"],
+      // "userId" => ["required", "exists:users,id"],
       "requestId" => ["required", "exists:requests,id"],
       "comment" => ["nullable", "string"]
     ]);
 
-    DB::transaction(function () use($validated) {
+    DB::transaction(function () use($validated, $request) {
       $requestItem = RequestModel::where("id", $validated["requestId"])->first();
 
       RequestModel::where("id", $validated["requestId"])->update([
@@ -223,9 +224,11 @@ class RequestController extends Controller
       ]);
 
       if($validated['comment']) {
-        /**
-         * Create comment record
-         */
+        Comment::create([
+          "content" => $validated["comment"],
+          "user_id" => $request->user()->id,
+          "request_id" => $validated["requestId"]
+        ]);
       }
 
     });

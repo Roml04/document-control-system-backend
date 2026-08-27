@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get("/", 'index');
     Route::post('/create', 'store');
     Route::patch("/{request}", 'update');
+    
     Route::get("/{request}/version", "viewWithVersion");
   });
 
@@ -33,12 +34,12 @@ Route::middleware('auth:sanctum')->group(function() {
 
 });
 
-Route::controller(VersionController::class)->group(function () {
-    Route::post('/version', 'store');
-    Route::post('/version/latest', 'showLatest');
-    Route::post('/version/pending/{document}', 'showPending');
-    Route::patch('/version/{version}', 'update');
-});
+// Route::controller(VersionController::class)->group(function () {
+//     Route::post('/version', 'store');
+//     Route::post('/version/latest', 'showLatest');
+//     Route::post('/version/pending/{document}', 'showPending');
+//     Route::patch('/version/{version}', 'update');
+// });
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
     return response()->json($request->user());
