@@ -54,7 +54,25 @@ class RequestResource extends JsonResource
             "requestId" => $this->version->request_id,
             "createdAt" => $this->version->created_at,
             "updatedAt" => $this->version->updated_at
-          ]
+          ],
+
+          "commenters" => $this->comment
+            ->groupBy('user_id')
+            ->sortByDesc(function($comment) {
+              return $comment->max('created_at');
+            })
+            ->map(function ($comment) {
+              $user = $comment->first()->user;
+              return [
+                "userId" => $user->id,
+                "firstName" => $user->first_name,
+                "lastName" => $user->last_name,
+                "role" => $user->role,
+                "comments" => CommentResource::collection($comment->values())
+              ];
+            })
+            ->values(),
         ];
     }
 }
+
