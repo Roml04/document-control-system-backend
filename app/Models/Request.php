@@ -26,4 +26,9 @@ class Request extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function comment() 
+    {
+        return $this->hasMany(Comment::class);
+    }
 }
