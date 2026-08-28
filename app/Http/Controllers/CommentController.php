@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class CommentController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(CommentResource::collection(Comment::all()));
     }
 
     /**

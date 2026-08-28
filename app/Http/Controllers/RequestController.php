@@ -5,11 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Resources\RequestResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
-use Carbon\Carbon;
-use GuzzleHttp\Psr7\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Helpers\helpers;
 use App\Models\Comment;
 
 class RequestController extends Controller
@@ -101,18 +98,17 @@ class RequestController extends Controller
 
   }
 
-  public function view(Request $request) {}
+  public function view(RequestModel $request) {
 
-  public function viewWithVersion(RequestModel $request) {
-
-    $request->load(['user:id,first_name,last_name,role', 'version:id,file_title,file_type,originator,department,revision_number,revision_details,upload_date,revision_date,approver,approved_date,file_name,file_path,file_id,request_id']);
+    $request->load([
+      'user:id,first_name,last_name,role', 
+      'version:id,file_title,file_type,originator,department,revision_number,revision_details,upload_date,revision_date,approver,approved_date,file_name,file_path,file_id,request_id', 
+      'comment:id,content,user_id,request_id,created_at,updated_at'
+    ]);
 
     return response()->json([
       "ok" => true,
-      "data" => [
-        // "request" => $request
-        "request" => new RequestResource($request)
-      ]
+      "data" => new RequestResource($request)
     ]);
   }
   
@@ -136,14 +132,6 @@ class RequestController extends Controller
       "fileTitle" => ["required","string"],
       "fileType" => ["in:document,checklist,form"],
       "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
-      
-      // "fileName" => ["required", "string"],
-      // "requestStatus" => ["required", "in:coordinator_approval,originator_edit,superior_approval,managers_approval,approved, denied"],
-      // "uploadDate" => ["nullable", "date_format:Y-m-d"],
-      // "revisionDate" => ["nullable", "date_format:Y-m-d"],
-      // "approvedDate" => ["nullable", "date_format:Y-m-d"],
-      // "versionStatus" => ["required", "in:pending,published,rejected"],
-      // "filePath" => ["required", "string"],
     ]);
 
     /**
@@ -159,20 +147,12 @@ class RequestController extends Controller
     $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . $uploadedFile->getClientOriginalExtension();
     $filePath = $uploadedFile->storeAs('versions', $fileName);
 
-    // return response()->json([
-    //   "data" => $fileName
-    // ]);
-
     $validatedWithFileInfo = [
       ...$validated,
       "userId" => $requestingUserId,
       "fileName" => $fileName,
       "filePath" => $filePath,
     ];
-
-    // return response()->json([
-    //   "data" => $validatedWithFileInfo
-    // ]);
 
     DB::transaction(function() use($validatedWithFileInfo) {
       $requestModel = RequestModel::create([
@@ -211,13 +191,16 @@ class RequestController extends Controller
   public function update(Request $request) {
     $validated = $request->validate([
       "isApproved" => ["required", "bool"],
-      // "userId" => ["required", "exists:users,id"],
       "requestId" => ["required", "exists:requests,id"],
       "comment" => ["nullable", "string"]
     ]);
 
     DB::transaction(function () use($validated, $request) {
       $requestItem = RequestModel::where("id", $validated["requestId"])->first();
+
+      /**
+       * If request.type === 'upl' || request.status === 'coordinator_approval' -> set status to superior_approval
+       */
 
       RequestModel::where("id", $validated["requestId"])->update([
         "status" => $validated["isApproved"] ? getNextStatus($requestItem->status) : "denied",
@@ -236,9 +219,17 @@ class RequestController extends Controller
     return response()->json([
       "ok" => true,
       "data" => [],
-      "message" => "DID IT WORK?"
+      "message" => "Successfully updated request status"
     ]);
+  }
 
-    
+  public function getComments(RequestModel $request) {
+    $requestComments = $request->comment;
+
+    return response()->json([
+      "ok" => true,
+      "data" => $requestComments,
+      "message" => "Successfully retrieved comments"
+    ]);
   }
 }

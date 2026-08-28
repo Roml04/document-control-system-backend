@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\RequestController;
@@ -20,16 +21,22 @@ Route::middleware('auth:sanctum')->group(function() {
 
   Route::prefix('request')->controller(RequestController::class)->group(function() {
     Route::get("/", 'index');
-    Route::post('/create', 'store');
+    Route::post('/', 'store');
+    Route::get("/{request}", "view");
     Route::patch("/{request}", 'update');
     
-    Route::get("/{request}/version", "viewWithVersion");
+    // Route::get("/{request}/version", "view");
+    Route::get("/{request}/comment", "getComments");
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
     Route::post("/", "index");
     Route::get("/{version}", "view");
     Route::get("/{version}/file", "viewFile");
+  });
+
+  Route::prefix('comment')->controller(CommentController::class)->group(function() {
+    Route::get('/', 'index');
   });
 
 });
