@@ -204,13 +204,21 @@ class RequestController extends Controller
       ]);
 
       if($requestItem->status === "approved") {
-        $requestItem->version->update([
-          "approved_date" => now()
-        ]);
-
-        File::create([
+        $file = File::create([
           "title" => $requestItem->version->file_title,
           "type" => $requestItem->version->file_type
+        ]);
+
+        $requestItem->version->update([
+          "approved_date" => now(),
+          "file_id" => $file->id,
+          "status" => "published"
+        ]);
+      }
+
+      if($requestItem->status === "denied") {
+        $requestItem->version->update([
+          "status" => "rejected"
         ]);
       }
 
