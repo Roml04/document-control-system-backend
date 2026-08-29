@@ -22,7 +22,7 @@ return new class extends Migration
             $table->date('upload_date');
             $table->date('revision_date')->nullable();
             $table->string('approver');
-            $table->date('approved_date')->nullable();
+            $table->dateTime('approved_date')->nullable();
             $table->enum('status', ['pending', 'published', 'rejected']);
             $table->string('file_name');
             $table->string('file_path');

@@ -2,10 +2,14 @@
 
 if(!function_exists('updateStatus')) {
 
-  function getNextStatus(string $status) {
+  function getNextStatus(string $reqType, string $status) {
 
     if($status === "approved") {
       throw new InvalidArgumentException(("Status is already approved"));
+    }
+
+    if($status === "coordinator_approval" && $reqType === "upl") {
+      return "superior_approval";
     }
 
     $statusArr = [

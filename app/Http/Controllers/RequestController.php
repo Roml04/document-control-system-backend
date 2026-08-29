@@ -8,6 +8,7 @@ use App\Models\Version;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Comment;
+use App\Models\File;
 
 class RequestController extends Controller
 { 
@@ -195,16 +196,23 @@ class RequestController extends Controller
       "comment" => ["nullable", "string"]
     ]);
 
-    DB::transaction(function () use($validated, $request) {
-      $requestItem = RequestModel::where("id", $validated["requestId"])->first();
-
-      /**
-       * If request.type === 'upl' || request.status === 'coordinator_approval' -> set status to superior_approval
-       */
-
-      RequestModel::where("id", $validated["requestId"])->update([
-        "status" => $validated["isApproved"] ? getNextStatus($requestItem->status) : "denied",
+    $test = DB::transaction(function () use($validated, $request) {
+      $requestItem = RequestModel::where("id", $validated["requestId"])->firstOrFail();
+      
+      $requestItem->update([
+        "status" => $validated["isApproved"] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
       ]);
+
+      if($requestItem->status === "approved") {
+        $requestItem->version->update([
+          "approved_date" => now()
+        ]);
+
+        File::create([
+          "title" => $requestItem->version->file_title,
+          "type" => $requestItem->version->file_type
+        ]);
+      }
 
       if($validated['comment']) {
         Comment::create([
@@ -214,11 +222,12 @@ class RequestController extends Controller
         ]);
       }
 
+      return $requestItem;
     });
 
     return response()->json([
       "ok" => true,
-      "data" => [],
+      "data" => $test,
       "message" => "Successfully updated request status"
     ]);
   }
