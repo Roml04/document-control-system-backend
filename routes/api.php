@@ -19,6 +19,10 @@ Route::middleware('auth:sanctum')->group(function() {
 
   Route::get('/logout', [AuthController::class, 'logout']);
 
+  Route::prefix('user')->controller(UserController::class)->group(function() {
+    Route::get('/', 'index');
+  });
+
   Route::prefix('request')->controller(RequestController::class)->group(function() {
     Route::get("/", 'index');
     Route::post('/', 'store');
@@ -37,6 +41,11 @@ Route::middleware('auth:sanctum')->group(function() {
 
   Route::prefix('comment')->controller(CommentController::class)->group(function() {
     Route::get('/', 'index');
+  });
+
+  Route::prefix('file')->controller(FileController::class)->group(function() {
+    Route::get('/', 'index');
+    Route::get('/{file}', 'view');
   });
 
 });

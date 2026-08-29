@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('department')->nullable();
             $table->string('revision_number')->nullable();
             $table->string('revision_details')->nullable();
-            $table->date('upload_date');
-            $table->date('revision_date')->nullable();
+            $table->dateTime('upload_date');
+            $table->dateTime('revision_date')->nullable();
             $table->string('approver');
             $table->dateTime('approved_date')->nullable();
             $table->enum('status', ['pending', 'published', 'rejected']);
