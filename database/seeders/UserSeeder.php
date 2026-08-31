@@ -48,6 +48,13 @@ class UserSeeder extends Seeder
                 'last_name' => 'Luxelle',
                 'role' => 'manager',
             ],
+            [
+              'email' => 'kyris@gmail.com',
+              'password' => bcrypt('kyris123'),
+              'first_name' => 'Kyris',
+              'last_name' => 'RSD',
+              'role' => 'manager'
+            ]
 
         ];
 
