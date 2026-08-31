@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
@@ -9,9 +10,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Comment;
 use App\Models\File;
+use App\Services\RequestService;
 
 class RequestController extends Controller
 { 
+  public function __construct(
+    protected RequestService $requestService
+  ) {}
+
   public function index(Request $request) {
     /**
      * Return all request if user is sysadmin
@@ -196,50 +202,21 @@ class RequestController extends Controller
       "comment" => ["nullable", "string"]
     ]);
 
-    $test = DB::transaction(function () use($validated, $request) {
-      $requestItem = RequestModel::where("id", $validated["requestId"])->firstOrFail();
-      
-      $requestItem->update([
-        "status" => $validated["isApproved"] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
-      ]);
+    $userRole = $request->user()->role;
 
-      if($requestItem->status === "approved") {
-        $file = File::create([
-          "title" => $requestItem->version->file_title,
-          "type" => $requestItem->version->file_type
-        ]);
-
-        $requestItem->version->update([
-          "approved_date" => now(),
-          "file_id" => $file->id,
-          "status" => "published"
-        ]);
-      }
-
-      if($requestItem->status === "denied") {
-        $requestItem->version->update([
-          "status" => "rejected"
-        ]);
-      }
-
-      if($validated['comment']) {
-        Comment::create([
-          "content" => $validated["comment"],
-          "user_id" => $request->user()->id,
-          "request_id" => $validated["requestId"]
-        ]);
-      }
-
-      return $requestItem;
-    });
+    if($userRole === UserRole::Manager->value) {
+      return $this->requestService->updateManagerDecision($validated['requestId'], $request->user()->id, $validated['isApproved'], $validated['comment']);
+    } else {
+      $this->requestService->updateStatus($validated['isApproved'], $validated['requestId'], $request->user()->id, $validated['comment']);
+    }
 
     return response()->json([
       "ok" => true,
-      "data" => $test,
+      "data" => null,
       "message" => "Successfully updated request status"
     ]);
   }
-
+  
   public function getComments(RequestModel $request) {
     $requestComments = $request->comment;
 
