@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -46,6 +48,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            // 'role' => UserRole::class,
         ];
     }
 
@@ -56,5 +59,9 @@ class User extends Authenticatable
 
     public function comment() {
       return $this->hasMany(Comment::class);
+    }
+
+    public function managersApproval() {
+      return $this->hasMany(ManagersApproval::class);
     }
 }

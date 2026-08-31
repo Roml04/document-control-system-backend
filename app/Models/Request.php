@@ -31,4 +31,8 @@ class Request extends Model
     {
         return $this->hasMany(Comment::class);
     }
+
+    public function managersApproval() {
+      return $this->hasMany(ManagersApproval::class);
+    }
 }
