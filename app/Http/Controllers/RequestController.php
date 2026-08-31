@@ -42,7 +42,9 @@ class RequestController extends Controller
       }
 
       if($user->role === "manager") {
-        $requests = RequestModel::where("status", "managers_approval")->get();
+        $requests = RequestModel::where("status", "managers_approval")->whereHas('managersApproval', function ($query) use($user) {
+          $query->where(['manager_id' => $user->id, 'decision' => 'pending']);
+        })->get();
       }
 
       if($user->role === "sysadmin") {
@@ -69,7 +71,6 @@ class RequestController extends Controller
           ]
         ];
       })->values();
-
 
     });
 
