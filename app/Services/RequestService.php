@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Enums\ManagersApprovalDecision;
 use App\Enums\UserRole;
+use App\Http\Resources\RequestResource;
 use App\Models\Comment;
 use App\Models\File;
 use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\User;
-use GuzzleHttp\Psr7\Request;
+use App\Models\Version;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RequestService
@@ -17,9 +19,112 @@ class RequestService
     /**
      * Create a new class instance.
      */
-    public function __construct()
-    {
-        //
+    public function __construct() {}
+
+    public function showRequests(Request $request) {
+
+      $user = $request->user();
+
+      $forApprovals = DB::transaction(function () use($user) {
+        $requests = [];
+
+        $role = $user->role;
+
+        /**
+         * NOTE: use enum here
+         */
+        if($role === 'originator') {
+          return $requests;
+        }
+
+        if($role === 'coordinator') {
+          $requests = RequestModel::with('version')->where("status", "coordinator_approval")->get();
+        }
+
+        if($role === 'superior') {
+          $requests = RequestModel::with('version')->where("status", "superior_approval")->get();
+        }
+
+        if($role === 'manager') {
+          $requests = RequestModel::with('version')->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
+            $query->where(['manager_id' => $user->id, 'decision' => 'pending']);
+          })->get();
+        }
+
+        if($role === 'sysadmin') {
+          $requests = RequestModel::all();
+        }
+
+        return $requests->sortByDesc("created_at")->values();
+      });
+
+      $user->request->load(['version:id,request_id,upload_date', 'user:id,first_name,last_name,role']);
+
+      return [
+        "myRequests" => RequestResource::collection($user->request->sortByDesc('created_at')->values()),
+        "forApprovals" => RequestResource::collection($forApprovals)
+      ];
+    }
+
+    public function createRequest(Request $request) {
+      $validated = $request->validate([
+        "type" => ["required", "in:upl,rev,resub"],
+        "title" => ["required", "string"],
+        "reason" => ["required", "string"],
+
+        "originator" => ["required", "string"],
+        "department" => ["required", "string"],
+        "revisionNumber" => ["required", "string"],
+        "revisionDetails" => ["required", "string"],
+        "approver" => ["required", "string"],
+        "fileId" => ["nullable", "exists:files,id"],
+        "fileTitle" => ["required","string"],
+        "fileType" => ["in:document,checklist,form"],
+        "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
+      ]);
+
+      $user = $request->user();
+      $requestingUserId = $user->id;
+
+      $uploadedFile = $request->file("file");
+      $uploadedFile->getClientOriginalExtension();
+
+      $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . $uploadedFile->getClientOriginalExtension();
+      $filePath = $uploadedFile->storeAs('versions', $fileName);
+
+      $validatedWithFile = [
+        ...$validated,
+        "userId" => $requestingUserId,
+        "fileName" => $fileName,
+        "filePath" => $filePath,
+      ];
+
+      DB::transaction(function() use($validatedWithFile) {
+        $requestModel = RequestModel::create([
+          "type" => $validatedWithFile["type"],
+          "title" => $validatedWithFile["title"],
+          "reason" => $validatedWithFile["reason"],
+          "status" => "coordinator_approval",
+          "user_id" => $validatedWithFile["userId"],
+        ]);
+        
+        Version::create([
+          "file_title" => $validatedWithFile["fileTitle"],
+          "file_type" => $validatedWithFile["fileType"],
+          "originator" => $validatedWithFile["originator"],
+          "department" => $validatedWithFile["department"],
+          "revision_number" => $validatedWithFile["revisionNumber"],
+          "revision_details" => $validatedWithFile["revisionDetails"],
+          "upload_date" => now(),
+          "revision_date" => now(),
+          "approver" => $validatedWithFile["approver"],
+          "status" => "pending",
+          "file_name" => $validatedWithFile["fileName"],
+          "file_path" => $validatedWithFile["filePath"], 
+          "file_id" => $validatedWithFile["fileId"] ?? null,
+          "request_id" => $requestModel->id,
+        ]);
+      });
     }
 
     public function updateStatus(bool $isApproved, int $requestId, int $userId, ?string $comment) {

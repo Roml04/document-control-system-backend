@@ -29,7 +29,6 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get("/{request}", "view");
     Route::patch("/{request}", 'update');
     
-    // Route::get("/{request}/version", "view");
     Route::get("/{request}/comment", "getComments");
   });
 
@@ -50,16 +49,16 @@ Route::middleware('auth:sanctum')->group(function() {
 
 });
 
+Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
+    return response()->json($request->user());
+});
+
 // Route::controller(VersionController::class)->group(function () {
 //     Route::post('/version', 'store');
 //     Route::post('/version/latest', 'showLatest');
 //     Route::post('/version/pending/{document}', 'showPending');
 //     Route::patch('/version/{version}', 'update');
 // });
-
-Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-    return response()->json($request->user());
-});
 
 /*
 Route::prefix('document')->controller(DocumentController::class)->group(function () {
