@@ -28,8 +28,6 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::post('/', 'store');
     Route::get("/{request}", "view");
     Route::patch("/{request}", 'update');
-    
-    Route::get("/{request}/comment", "getComments");
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
