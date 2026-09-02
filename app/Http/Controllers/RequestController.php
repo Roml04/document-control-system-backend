@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
+use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use App\Services\ManagersApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\RequestService;
@@ -13,7 +15,8 @@ use App\Services\RequestService;
 class RequestController extends Controller
 { 
   public function __construct(
-    protected RequestService $requestService
+    protected RequestService $requestService,
+    protected ManagersApprovalService $managersApprovalService
   ) {}
 
   public function index(Request $request) {
@@ -43,11 +46,37 @@ class RequestController extends Controller
   
   public function store(Request $request) {
 
-    $this->requestService->createRequest($request);
+    $validated = $request->validate([
+      "type" => ["required", "in:upl,rev,resub"],
+      "title" => ["required", "string"],
+      "reason" => ["required", "string"],
+      "originator" => ["required", "string"],
+      "department" => ["required", "string"],
+      "revisionNumber" => ["required", "string"],
+      "revisionDetails" => ["required", "string"],
+      "approver" => ["required", "string"],
+      "fileId" => ["nullable", "exists:files,id"],
+      "fileTitle" => ["required","string"],
+      "fileType" => ["in:document,checklist,form"],
+      "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
+    ]);
+
+    switch($validated['type']) {
+      case "upl":
+        $this->requestService->createUplRequest($validated, $request->user(), $request->file('file'));
+        break;
+      case "rev":
+        $this->requestService->createRevRequest($validated, $request->user());
+        break;
+      case "resub":
+        $this->requestService->createResubRequest();
+        break;
+      default:
+    }
 
     return response()->json([
       "ok" => true,
-      "data" => [],
+      "data" => null,
       "message" => "Request submitted successfuly"
     ]);
   }
@@ -59,28 +88,14 @@ class RequestController extends Controller
       "comment" => ["nullable", "string"]
     ]);
 
-    $userRole = $request->user()->role;
+    $user = $request->user();
 
-    if($userRole === UserRole::Manager->value) {
-      return $this->requestService->updateManagerDecision($validated['requestId'], $request->user()->id, $validated['isApproved'], $validated['comment']);
-    } else {
-      $this->requestService->updateStatus($validated['isApproved'], $validated['requestId'], $request->user()->id, $validated['comment']);
-    }
+    $this->requestService->updateUplRequest($validated, $user);
 
     return response()->json([
       "ok" => true,
       "data" => null,
-      "message" => "Successfully updated request status"
-    ]);
-  }
-  
-  public function getComments(RequestModel $request) {
-    $requestComments = $request->comment;
-
-    return response()->json([
-      "ok" => true,
-      "data" => $requestComments,
-      "message" => "Successfully retrieved comments"
+      "message" => "Successfully updated request"
     ]);
   }
 }

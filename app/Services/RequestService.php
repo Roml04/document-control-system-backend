@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\ManagersApprovalDecision;
 use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
 use App\Models\Comment;
@@ -12,6 +11,7 @@ use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class RequestService
@@ -19,7 +19,10 @@ class RequestService
     /**
      * Create a new class instance.
      */
-    public function __construct() {}
+    public function __construct(
+      protected ManagersApprovalService $managersApprovalService, 
+      protected VersionService $versionService
+    ) {}
 
     public function showRequests(Request $request) {
 
@@ -38,15 +41,15 @@ class RequestService
         }
 
         if($role === 'coordinator') {
-          $requests = RequestModel::with('version')->where("status", "coordinator_approval")->get();
+          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "coordinator_approval")->get();
         }
 
         if($role === 'superior') {
-          $requests = RequestModel::with('version')->where("status", "superior_approval")->get();
+          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "superior_approval")->get();
         }
 
         if($role === 'manager') {
-          $requests = RequestModel::with('version')->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
+          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
             $query->where(['manager_id' => $user->id, 'decision' => 'pending']);
           })->get();
         }
@@ -66,37 +69,16 @@ class RequestService
       ];
     }
 
-    public function createRequest(Request $request) {
-      $validated = $request->validate([
-        "type" => ["required", "in:upl,rev,resub"],
-        "title" => ["required", "string"],
-        "reason" => ["required", "string"],
-
-        "originator" => ["required", "string"],
-        "department" => ["required", "string"],
-        "revisionNumber" => ["required", "string"],
-        "revisionDetails" => ["required", "string"],
-        "approver" => ["required", "string"],
-        "fileId" => ["nullable", "exists:files,id"],
-        "fileTitle" => ["required","string"],
-        "fileType" => ["in:document,checklist,form"],
-        "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
-      ]);
-
-      $user = $request->user();
+    public function createUplRequest(array $validated, User $user, UploadedFile $uploadedFile) {
       $requestingUserId = $user->id;
 
-      $uploadedFile = $request->file("file");
-      $uploadedFile->getClientOriginalExtension();
-
       $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . $uploadedFile->getClientOriginalExtension();
-      $filePath = $uploadedFile->storeAs('versions', $fileName);
 
       $validatedWithFile = [
         ...$validated,
         "userId" => $requestingUserId,
         "fileName" => $fileName,
-        "filePath" => $filePath,
+        "filePath" => $uploadedFile->storeAs('versions', $fileName),
       ];
 
       DB::transaction(function() use($validatedWithFile) {
@@ -127,14 +109,56 @@ class RequestService
       });
     }
 
-    public function updateStatus(bool $isApproved, int $requestId, int $userId, ?string $comment) {
-      DB::transaction(function () use($isApproved, $requestId, $userId, $comment) {
-        $requestItem = RequestModel::where("id", $requestId)->firstOrFail();
+    public function createRevRequest(array $validated, User $user) {
+      RequestModel::create([
+        "type" => 'rev',
+        "title" => $validated['title'],
+        "reason" => $validated['reason'],
+        "status" => "coordinator_approval",
+        "user_id" => $user->id
+      ]);
+    }
+
+    public function createResubRequest() {}
+
+    public function updateUplRequest(array $validated, User $user) {
+      $userId = $user->id;
+      $decision = null;
+
+      /**
+       * Checks if the current user is manager or not
+       */
+      if($user->role === UserRole::Manager->value) {
+        $this->managersApprovalService
+          ->updateManagerDecision($validated, $userId);
+
+        $decision = $this->managersApprovalService
+          ->checkAllDecisions($validated['requestId']);
+      } else {
+        /**
+         * updates all requests without the managers_approval status
+         */
+        $this->updateNonManagerRequest($validated, $userId);
+      }
+      
+      if($decision !== null) {
+        $request = ManagersApproval::with('request')
+          ->where(['request_id' => $validated['requestId'], 'manager_id' => $userId])
+          ->firstOrFail()->request;
+
+        $this->finalizeRequest($request, $decision);
+      }
+    }
+
+    public function updateNonManagerRequest(array $validated, int $userId) {
+      DB::transaction(function () use($validated, $userId) {
+        $comment = $validated['comment'];
+        $requestItem = RequestModel::where("id", $validated['requestId'])->firstOrFail();
         
         $requestItem->update([
-          "status" => $isApproved ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
         ]);
-
+        
         if($requestItem->status === "denied") {
           $requestItem->version->update([
             "status" => "rejected"
@@ -142,107 +166,50 @@ class RequestService
         }
 
         if($requestItem->status === "managers_approval") {
-          $this->createManagerDecisions($requestItem->id);
+          $this->managersApprovalService->createManagerDecisions($requestItem->id);
         }
 
         if($comment) {
           Comment::create([
             "content" => $comment,
             "user_id" => $userId,
-            "request_id" => $requestId
-          ]);
-        }
-
-        return $requestItem;
-      });
-    }
-
-    public function createManagerDecisions(int $requestId) {
-
-      $managerIds = User::where('role', UserRole::Manager)->pluck('id');
-
-      DB::transaction(function() use($managerIds, $requestId) {
-        foreach($managerIds as $managerId) {
-          ManagersApproval::create([
-            "manager_id" => $managerId,
-            "request_id" => $requestId,
-            "decision" => ManagersApprovalDecision::Pending,
-            "decided_at" => null
+            "request_id" => $validated['requestId']
           ]);
         }
       });
     }
 
-    public function updateManagerDecision(int $requestId, int $managerId, bool $isApproved, ?string $comment) {  
-      $authManagerDecision = ManagersApproval::with('request')->where(['request_id' => $requestId, 'manager_id' => $managerId])->firstOrFail();
+    public function finalizeRequest(RequestModel $requestItem, bool $decision) {
       
-      $authManagerDecision->update(['decision' => $isApproved ? "approved" : "denied", "decided_at" => now()]);
-      
-      $allDecisions = ManagersApproval::where(['request_id' => $requestId])->get();
+      if($decision) {
+        $relatedVersion = $requestItem->load('version')->version;
 
-      /**
-       * Checks if there are no pending decisions and if there is at least one decision that was denied
-       */
-      if($allDecisions->where('decision', 'pending')->count() === 0 && $allDecisions->where('decision', 'denied')->count() > 0) {
-        $relatedRequest = $authManagerDecision->request;
-        $this->denyRequest($relatedRequest);
-      }
+        $file = File::create([
+          "title" => $relatedVersion->file_title,
+          "type" => $relatedVersion->file_type
+        ]);
 
-      /**
-       * Checks if the amount of approved decisions with this particular request is the same with the total amount of created decisions. 
-       */
-      if($allDecisions->count() === $allDecisions->where('decision', 'approved')->count()) {
-        $this->approveRequest($authManagerDecision->request);
-      }
+        $requestItem->update([
+          "status" => "approved"
+        ]);
 
-      if($comment) {
-        Comment::create([
-          "content" => $comment,
-          "user_id" => $managerId,
-          "request_id" => $requestId
+        $relatedVersion->update([
+          "approved_date" => now(),
+          "file_id" => $file->id,
+          "status" => "published"
+        ]);
+
+      } else {
+
+        $relatedVersion = $requestItem->load('version')->version;
+        
+        $requestItem->update([
+          "status" => "denied"
+        ]);
+
+        $relatedVersion->update([
+          "status" => "rejected"
         ]);
       }
-
-      return response()->json([
-        "ok" => true,
-        "data" => null,
-        "message" => 'IDK'
-      ]);
-    }
-
-    public function approveRequest(RequestModel $requestItem) {
-
-      $relatedVersion = $requestItem->load('version')->version;
-
-      $file = File::create([
-        "title" => $relatedVersion->file_title,
-        "type" => $relatedVersion->file_type
-      ]);
-
-      $requestItem->update([
-        "status" => "approved"
-      ]);
-
-      $relatedVersion->update([
-        "approved_date" => now(),
-        "file_id" => $file->id,
-        "status" => "published"
-      ]);
-
-      return $requestItem;
-    }
-
-    public function denyRequest(RequestModel $requestItem) {
-      $relatedVersion = $requestItem->load('version')->version;
-      
-      $requestItem->update([
-        "status" => "denied"
-      ]);
-
-      $relatedVersion->update([
-        "status" => "rejected"
-      ]);
-
-      return $requestItem;
     }
 }
