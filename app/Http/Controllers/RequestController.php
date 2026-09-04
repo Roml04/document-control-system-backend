@@ -46,31 +46,43 @@ class RequestController extends Controller
   
   public function store(Request $request) {
 
-    $validated = $request->validate([
+    $type = $request->validate([
       "type" => ["required", "in:upl,rev,resub"],
-      "title" => ["required", "string"],
-      "reason" => ["required", "string"],
-      "originator" => ["required", "string"],
-      "department" => ["required", "string"],
-      "revisionNumber" => ["required", "string"],
-      "revisionDetails" => ["required", "string"],
-      "approver" => ["required", "string"],
-      "fileId" => ["nullable", "exists:files,id"],
-      "fileTitle" => ["required","string"],
-      "fileType" => ["in:document,checklist,form"],
-      "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
-    ]);
-
-    switch($validated['type']) {
+    ])['type'];
+    
+    switch($type) {
       case "upl":
+        $validated = $request->validate([
+          "title" => ["required", "string"],
+          "reason" => ["required", "string"],
+          "originator" => ["required", "string"],
+          "department" => ["required", "string"],
+          "revisionNumber" => ["required", "string"],
+          "revisionDetails" => ["required", "string"],
+          "approver" => ["required", "string"],
+          "fileId" => ["nullable", "exists:files,id"],
+          "fileTitle" => ["required","string"],
+          "fileType" => ["in:document,checklist,form"],
+          "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
+        ]);
+
         $this->requestService->createUplRequest($validated, $request->user(), $request->file('file'));
         break;
+
       case "rev":
+        $validated = $request->validate([
+          "title" => ["required", "string"],
+          "reason" => ["required", "string"],
+          "latestVersionId" => ["required", "exists:versions,id"],
+        ]);
+
         $this->requestService->createRevRequest($validated, $request->user());
         break;
+
       case "resub":
         $this->requestService->createResubRequest();
         break;
+
       default:
     }
 

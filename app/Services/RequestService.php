@@ -83,7 +83,7 @@ class RequestService
 
       DB::transaction(function() use($validatedWithFile) {
         $requestModel = RequestModel::create([
-          "type" => $validatedWithFile["type"],
+          "type" => 'upl',
           "title" => $validatedWithFile["title"],
           "reason" => $validatedWithFile["reason"],
           "status" => "coordinator_approval",
@@ -110,13 +110,36 @@ class RequestService
     }
 
     public function createRevRequest(array $validated, User $user) {
-      RequestModel::create([
-        "type" => 'rev',
-        "title" => $validated['title'],
-        "reason" => $validated['reason'],
-        "status" => "coordinator_approval",
-        "user_id" => $user->id
-      ]);
+      $versionWithFile = Version::findOrFail($validated["latestVersionId"]);
+      $userId = $user->id;
+
+      DB::transaction(function () use($validated, $versionWithFile, $userId) {
+        $requestItem = RequestModel::create([
+          "type" => 'rev',
+          "title" => $validated['title'],
+          "reason" => $validated['reason'],
+          "status" => "coordinator_approval",
+          "user_id" => $userId
+        ]);
+
+        Version::create([
+          "file_title" => $versionWithFile->file_title,
+          "file_type" => $versionWithFile->file_type,
+          "originator" => $versionWithFile->originator,
+          "department" => $versionWithFile->department,
+          "revision_number" => $versionWithFile->revision_number,
+          "revision_details" => $versionWithFile->revision_details,
+          "upload_date" => $versionWithFile->upload_date,
+          "revision_date" => $versionWithFile->revision_date,
+          "approver" => $versionWithFile->approver,
+          "approved_date" => $versionWithFile->approved_date,
+          "status" => "pending",
+          "file_name" => $versionWithFile->file_name,
+          "file_path" => $versionWithFile->file_path,
+          "file_id" => $versionWithFile->file_id,
+          "request_id" => $requestItem->id,
+        ]);
+      });
     }
 
     public function createResubRequest() {}
