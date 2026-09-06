@@ -62,7 +62,7 @@ class RequestController extends Controller
           "approver" => ["required", "string"],
           "fileId" => ["nullable", "exists:files,id"],
           "fileTitle" => ["required","string"],
-          "fileType" => ["in:document,checklist,form"],
+          "fileType" => ["required", "in:document,checklist,form"],
           "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
         ]);
 
