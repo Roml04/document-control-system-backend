@@ -23,16 +23,16 @@ class VersionResource extends JsonResource
           "department" => $this->department,
           "revisionNumber" => $this->revision_number,
           "revisionDetails" => $this->revision_details,
-          "uploadDate" => Carbon::parse($this->upload_date)->format('Y-m-d'),
-          "revisionDate" => Carbon::parse($this->revision_date)->format('Y-m-d'),
+          "uploadDate" => Carbon::parse($this->upload_date)->format('Y-m-d h:iA'),
+          "revisionDate" => $this->revision_date ? Carbon::parse($this->revision_date)->format('Y-m-d h:iA') : null,
           "approver" => $this->approver,
-          "approvedDate" => Carbon::parse($this->approved_date)->format('Y-m-d'),
+          "approvedDate" => $this->approved_date ? Carbon::parse($this->approved_date)->format('Y-m-d h:iA') : null,
           "fileName" => $this->file_name,
           "filePath" => $this->file_path,
           "fileId" => $this->file_id,
           "requestId" => $this->request_id,
-          "createdAt" => $this->created_at,
-          "updatedAt" => $this->updated_at,
+          "createdAt" => $this->created_at ? $this->created_at->format('Y-m-d h:iA') : null,
+          "updatedAt" => $this->updated_at ? $this->updated_at->format('Y-m-d h:iA') : null,
         ];
     }
 }

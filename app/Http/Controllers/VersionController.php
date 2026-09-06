@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\VersionResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class VersionController extends Controller
 {
@@ -25,29 +29,14 @@ class VersionController extends Controller
     }
 
     public function view(Version $version) {
-      return response()->json(["ok" => true, "data" => [
-        "id" => $version->id,
-        "fileTitle" => $version->file_title,
-        "fileType" => $version->file_type,
-        "originator" => $version->originator,
-        "department" => $version->department,
-        "revisionNumber" => $version->revision_number,
-        "revisionDetails" => $version->revision_details,
-        "uploadDate" => $version->upload_date,
-        "revisionDate" => $version->revision_date,
-        "approver" => $version->approver,
-        "approvedDate" => $version->approved_date,
-        // "status" => $version->status,
-        "fileName" => $version->file_name,
-        "filePath" => $version->file_path,
-        // "fileId" => $version->file_id,
-        // "requesetId" => $version->request_id
-      ], "message" => "Retrieved version id [" . $version->id . "]"]);
-
-      // Version::where("id", )
+      return response()->json([
+        "ok" => true,
+        "data" => new VersionResource($version),
+        "message" => "Successfully retrieved version"
+      ]);
     }
 
-    public function viewFile(Version $version) {
+    public function download(Version $version) {
       $filePath = $version->file_path;
 
       if(Storage::missing($filePath)) {
@@ -57,5 +46,54 @@ class VersionController extends Controller
       }
 
       return Storage::response($filePath);
+    }
+
+    public function edit(Request $request) {
+      $validated = $request->validate([
+        "id" => ["required", "exists:versions,id"],
+        "fileTitle" => ["required", "string"],
+        "fileType" => ["required", "in:document,checklist,form"],
+        "originator" => ["required", "string"],
+        "department" => ["required", "string"],
+        "revisionNumber" => ["required", "string"],
+        "revisionDetails" => ["required", "string"],
+        "approver" => ["required", "string"],
+      ]);
+
+      DB::transaction(function () use($validated) {
+        $version = Version::with('request')->findOrFail($validated["id"]);
+
+        $user = $version->request->load('user')->user;
+
+        $prevFilePath = $version->file_path;
+
+        $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . pathinfo($version->file_path, PATHINFO_EXTENSION);
+        $filePath = "versions/" . $fileName;
+
+        $version->update([
+          "file_title" => $validated["fileTitle"],
+          "file_type" => $validated["fileType"],
+          "originator" => $validated["originator"],
+          "department" => $validated["department"],
+          "revision_number" => $validated["revisionNumber"],
+          "revision_details" => $validated["revisionDetails"],
+          "revision_date" => now(),
+          "approver" => $validated["approver"],
+          "file_name" => $fileName,
+          "file_path" => $filePath,
+        ]);
+
+        $version->request->update([
+          "status" => getNextStatus("rev", $version->request->status)
+        ]);
+
+        Storage::move("/draft/$prevFilePath", $filePath);
+      });
+
+      return response()->json([
+        "ok" => true,
+        "data" => null,
+        "message" => "Successfully patched version"
+      ]);
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\OnlyOfficeController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VersionController;
@@ -28,15 +29,13 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::post('/', 'store');
     Route::get("/{request}", "view");
     Route::patch("/{request}", 'update');
-    
-    // Route::get("/{request}/version", "view");
-    Route::get("/{request}/comment", "getComments");
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
     Route::post("/", "index");
     Route::get("/{version}", "view");
-    Route::get("/{version}/file", "viewFile");
+    Route::patch("/{version}", "edit");
+    Route::get("/{version}/file", "download");
   });
 
   Route::prefix('comment')->controller(CommentController::class)->group(function() {
@@ -47,40 +46,14 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/', 'index');
     Route::get('/{file}', 'view');
   });
-
 });
-
-// Route::controller(VersionController::class)->group(function () {
-//     Route::post('/version', 'store');
-//     Route::post('/version/latest', 'showLatest');
-//     Route::post('/version/pending/{document}', 'showPending');
-//     Route::patch('/version/{version}', 'update');
-// });
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-    return response()->json($request->user());
+  return response()->json($request->user());
 });
 
-/*
-Route::prefix('document')->controller(DocumentController::class)->group(function () {
-    Route::post('/', 'index');
-    Route::post('/create', 'store');
-    Route::post('/{document}', 'show');
-    Route::put('/{document}', 'update');
-    Route::delete('/{document}', 'destroy');
-
-    Route::prefix('{document}/version')->controller(VersionController::class)->group(function () {
-        // routes
-    });
+Route::controller(OnlyOfficeController::class)->group(function() {
+  Route::get('/onlyoffice/show/{version}', "show")->middleware("signed")->name('onlyoffice.document');
+  Route::get('/onlyoffice/edit/{version}', 'edit');
+  Route::post('/onlyoffice/callback/{version}', 'callback');
 });
-*/
-
-// Route::middleware(['auth:sanctum'])->group(function() {
-/*
-Route::controller(RevisionController::class)->group(function () {
-    Route::post('/revision', 'create');
-    Route::get('/revision', 'index');
-    Route::patch('/revision/{revision}', 'update');
-});
-*/
-// });
