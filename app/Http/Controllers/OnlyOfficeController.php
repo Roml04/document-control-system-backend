@@ -53,7 +53,18 @@ class OnlyOfficeController extends Controller
       ]);
     }
 
-    public function callback(Version $version) {
+    public function callback(Request $request, Version $version) {
+
+      $savedStatuses = [2, 3, 6, 7];
+      
+      if(in_array($request["status"], $savedStatuses)) {
+        /**
+         * Saves the file to /draft/versions folder
+         */
+        $contents = file_get_contents($request["url"]);
+        Storage::disk("local")->put("/draft/$version->file_path", $contents);
+      }
+
       return response()->json(["error" => 0]);
     }
 }
