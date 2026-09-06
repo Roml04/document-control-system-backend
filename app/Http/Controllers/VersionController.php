@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Resources\VersionResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class VersionController extends Controller
 {
@@ -26,9 +28,10 @@ class VersionController extends Controller
     }
 
     public function view(Version $version) {
-
       return response()->json([
-        "data" => new VersionResource($version)
+        "ok" => true,
+        "data" => new VersionResource($version),
+        "message" => "Successfully retrieved version"
       ]);
     }
 
