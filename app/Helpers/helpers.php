@@ -1,6 +1,6 @@
 <?php
 
-if(!function_exists('updateStatus')) {
+if(!function_exists('getNextStatus')) {
 
   function getNextStatus(string $reqType, string $status) {
 
