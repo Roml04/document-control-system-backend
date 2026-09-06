@@ -203,36 +203,57 @@ class RequestService
     }
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) {
-      
-      if($decision) {
-        $relatedVersion = $requestItem->load('version')->version;
+      DB::transaction(function() use($requestItem, $decision) {
+        if($decision) {
+          $relatedVersion = $requestItem->load('version')->version;
 
-        $file = File::create([
-          "title" => $relatedVersion->file_title,
-          "type" => $relatedVersion->file_type
-        ]);
+          if($requestItem->type === "upl") {
+            $file = File::create([
+              "title" => $relatedVersion->file_title,
+              "type" => $relatedVersion->file_type
+            ]);
 
-        $requestItem->update([
-          "status" => "approved"
-        ]);
+            $relatedVersion->update([
+              "file_id" => $file->id,
+            ]);
+          }
 
-        $relatedVersion->update([
-          "approved_date" => now(),
-          "file_id" => $file->id,
-          "status" => "published"
-        ]);
+          if($requestItem->type === "rev") {
+            $relatedFile = $relatedVersion->load('file')->file;
 
-      } else {
+            $relatedFile->update([
+              'title' => $relatedVersion->file_title,
+              'type' => $relatedVersion->file_type
+            ]);
+          }
 
-        $relatedVersion = $requestItem->load('version')->version;
-        
-        $requestItem->update([
-          "status" => "denied"
-        ]);
+          if($requestItem->type === "resub") {
+            /**
+             * Upsert
+             */
+          }
 
-        $relatedVersion->update([
-          "status" => "rejected"
-        ]);
-      }
+          $requestItem->update([
+            "status" => "approved"
+          ]);
+
+          $relatedVersion->update([
+            "approved_date" => now(),
+            "status" => "published"
+          ]);
+
+        } else {
+
+          $relatedVersion = $requestItem->load('version')->version;
+          
+          $requestItem->update([
+            "status" => "denied"
+          ]);
+
+          $relatedVersion->update([
+            "status" => "rejected"
+          ]);
+        }
+      });
     }
 }
