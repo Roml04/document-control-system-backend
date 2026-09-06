@@ -34,7 +34,8 @@ Route::middleware('auth:sanctum')->group(function() {
   Route::prefix('version')->controller(VersionController::class)->group(function() {
     Route::post("/", "index");
     Route::get("/{version}", "view");
-    Route::get("/{version}/file", "viewFile");
+    Route::patch("/{version}", "edit");
+    Route::get("/{version}/file", "download");
   });
 
   Route::prefix('comment')->controller(CommentController::class)->group(function() {
@@ -52,7 +53,7 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 });
 
 Route::controller(OnlyOfficeController::class)->group(function() {
-  Route::get('/onlyoffice/document/{version}', "show")->middleware("signed")->name('onlyoffice.document');
+  Route::get('/onlyoffice/show/{version}', "show")->middleware("signed")->name('onlyoffice.document');
   Route::get('/onlyoffice/edit/{version}', 'edit');
   Route::post('/onlyoffice/callback/{version}', 'callback');
 });
