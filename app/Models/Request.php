@@ -15,6 +15,7 @@ class Request extends Model
         'reason',
         'status',
         'user_id',
+        'file_id',
     ];
 
     public function version()

@@ -111,33 +111,34 @@ class RequestService
     }
 
     public function createRevRequest(array $validated, User $user) {
-      $versionWithFile = Version::findOrFail($validated["latestVersionId"]);
+      $version = Version::findOrFail($validated["latestVersionId"]);
       $userId = $user->id;
 
-      DB::transaction(function () use($validated, $versionWithFile, $userId) {
+      DB::transaction(function () use($validated, $version, $userId) {
         $requestItem = RequestModel::create([
           "type" => 'rev',
           "title" => $validated['title'],
           "reason" => $validated['reason'],
           "status" => "coordinator_approval",
-          "user_id" => $userId
+          "user_id" => $userId,
+          "file_id" => $version->file->id
         ]);
 
         Version::create([
-          "file_title" => $versionWithFile->file_title,
-          "file_type" => $versionWithFile->file_type,
-          "originator" => $versionWithFile->originator,
-          "department" => $versionWithFile->department,
-          "revision_number" => $versionWithFile->revision_number,
-          "revision_details" => $versionWithFile->revision_details,
-          "upload_date" => $versionWithFile->upload_date,
-          "revision_date" => $versionWithFile->revision_date,
-          "approver" => $versionWithFile->approver,
-          "approved_date" => $versionWithFile->approved_date,
+          "file_title" => $version->file_title,
+          "file_type" => $version->file_type,
+          "originator" => $version->originator,
+          "department" => $version->department,
+          "revision_number" => $version->revision_number,
+          "revision_details" => $version->revision_details,
+          "upload_date" => $version->upload_date,
+          "revision_date" => $version->revision_date,
+          "approver" => $version->approver,
+          "approved_date" => $version->approved_date,
           "status" => "pending",
-          "file_name" => $versionWithFile->file_name,
-          "file_path" => $versionWithFile->file_path,
-          "file_id" => $versionWithFile->file_id,
+          "file_name" => $version->file_name,
+          "file_path" => $version->file_path,
+          "file_id" => $version->file_id,
           "request_id" => $requestItem->id,
         ]);
       });
@@ -207,48 +208,9 @@ class RequestService
       });
     }
 
-    public function finalizeRequest(RequestModel $requestItem, bool $decision) {
+    public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
-        if($decision) {
-          $relatedVersion = $requestItem->load('version')->version;
-
-          if($requestItem->type === "upl") {
-            $file = File::create([
-              "title" => $relatedVersion->file_title,
-              "type" => $relatedVersion->file_type
-            ]);
-
-            $relatedVersion->update([
-              "file_id" => $file->id,
-            ]);
-          }
-
-          if($requestItem->type === "rev") {
-            $relatedFile = $relatedVersion->load('file')->file;
-
-            $relatedFile->update([
-              'title' => $relatedVersion->file_title,
-              'type' => $relatedVersion->file_type
-            ]);
-          }
-
-          if($requestItem->type === "resub") {
-            /**
-             * Upsert
-             */
-          }
-
-          $requestItem->update([
-            "status" => "approved"
-          ]);
-
-          $relatedVersion->update([
-            "approved_date" => now(),
-            "status" => "published"
-          ]);
-
-        } else {
-
+        if(!$decision) {
           $relatedVersion = $requestItem->load('version')->version;
           
           $requestItem->update([
@@ -260,7 +222,50 @@ class RequestService
           ]);
 
           Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
+
+          return;
         }
+      
+        $relatedVersion = $requestItem->load('version')->version;
+        
+        if($requestItem->type === "upl") {
+          $file = File::create([
+            "title" => $relatedVersion->file_title,
+            "type" => $relatedVersion->file_type
+          ]);
+
+          $relatedVersion->update([
+            "file_id" => $file->id,
+          ]);
+
+          $requestItem->update([
+            "file_id" => $file->id,
+          ]);
+        }
+
+        if($requestItem->type === "rev") {
+          $relatedFile = $relatedVersion->load('file')->file;
+
+          $relatedFile->update([
+            'title' => $relatedVersion->file_title,
+            'type' => $relatedVersion->file_type
+          ]);
+        }
+
+        if($requestItem->type === "resub") {
+          /**
+           * Upsert
+           */
+        }
+
+        $requestItem->update([
+          "status" => "approved",
+        ]);
+
+        $relatedVersion->update([
+          "approved_date" => now(),
+          "status" => "published"
+        ]);
       });
     }
 }
