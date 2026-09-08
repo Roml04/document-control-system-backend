@@ -23,7 +23,7 @@ class VersionResource extends JsonResource
           "department" => $this->department,
           "revisionNumber" => $this->revision_number,
           "revisionDetails" => $this->revision_details,
-          "uploadDate" => Carbon::parse($this->upload_date)->format('Y-m-d h:iA'),
+          "uploadDate" => $this->upload_date ? Carbon::parse($this->upload_date)->format('Y-m-d h:iA') : null,
           "revisionDate" => $this->revision_date ? Carbon::parse($this->revision_date)->format('Y-m-d h:iA') : null,
           "approver" => $this->approver,
           "approvedDate" => $this->approved_date ? Carbon::parse($this->approved_date)->format('Y-m-d h:iA') : null,

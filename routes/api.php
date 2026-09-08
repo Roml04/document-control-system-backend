@@ -53,7 +53,20 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 });
 
 Route::controller(OnlyOfficeController::class)->group(function() {
-  Route::get('/onlyoffice/show/{version}', "show")->middleware("signed")->name('onlyoffice.document');
+  /**
+   * file
+   */
+  Route::get('/onlyoffice/file/{version}/view', "viewFile")->middleware("signed")->name('onlyoffice.view');
+  Route::get('/onlyoffice/file/{version}/edit', "editFile")->middleware("signed")->name('onlyoffice.edit');
+  
+  /**
+   * config
+   */
+  Route::get('/onlyoffice/view/{version}', 'view');
   Route::get('/onlyoffice/edit/{version}', 'edit');
+
+  /**
+   * callback handler
+   */
   Route::post('/onlyoffice/callback/{version}', 'callback');
 });
