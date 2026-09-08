@@ -13,6 +13,7 @@ use App\Models\Version;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class RequestService
 {
@@ -186,6 +187,8 @@ class RequestService
           $requestItem->version->update([
             "status" => "rejected"
           ]);
+
+          Storage::move($requestItem->version->file_path, "/rejected/" . $requestItem->version->file_path);
         }
 
         if($requestItem->status === "managers_approval") {
@@ -253,6 +256,8 @@ class RequestService
           $relatedVersion->update([
             "status" => "rejected"
           ]);
+
+          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
         }
       });
     }

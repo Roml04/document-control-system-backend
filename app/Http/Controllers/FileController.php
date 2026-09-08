@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class FileController extends Controller
 {
     public function index() {
-      $files = File::all();
+      $files = File::with("version:file_id,originator,revision_number,revision_date")->get();
 
       return response()->json([
         "ok" => true,
