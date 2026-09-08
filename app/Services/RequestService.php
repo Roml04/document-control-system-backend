@@ -145,6 +145,8 @@ class RequestService
 
     public function createResubRequest() {}
 
+    public function createDelRequest() {}
+
     public function updateUplRequest(array $validated, User $user) {
       $userId = $user->id;
       $decision = null;

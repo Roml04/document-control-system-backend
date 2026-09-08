@@ -47,7 +47,7 @@ class RequestController extends Controller
   public function store(Request $request) {
 
     $type = $request->validate([
-      "type" => ["required", "in:upl,rev,resub"],
+      "type" => ["required", "in:upl,rev,resub,del"],
     ])['type'];
     
     switch($type) {
@@ -81,6 +81,10 @@ class RequestController extends Controller
 
       case "resub":
         $this->requestService->createResubRequest();
+        break;
+
+      case "del":
+
         break;
 
       default:

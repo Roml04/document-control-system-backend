@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('requests', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['upl', 'rev', 'resub']);
+            $table->enum('type', ['upl', 'rev', 'resub', 'del']);
             $table->string('title');
             $table->string('reason');
             $table->enum('status', ['coordinator_approval', 'originator_edit', 'superior_approval', 'managers_approval', 'approved', 'denied']);
