@@ -84,7 +84,14 @@ class RequestController extends Controller
         break;
 
       case "del":
+        $validated = $request->validate([
+          "title" => ["required", "string"],
+          "reason" => ["required", "string"],
+          "latestVersionId" => ["required", "exists:versions,id"],
+          "fileId" => ["required", "exists:files,id"],
+        ]);
 
+        $this->requestService->createDelRequest($validated, $request->user());
         break;
 
       default:

@@ -124,6 +124,9 @@ class RequestService
           "file_id" => $version->file->id
         ]);
 
+        /**
+         * NOTE: Use replicate here
+         */
         Version::create([
           "file_title" => $version->file_title,
           "file_type" => $version->file_type,
@@ -146,11 +149,40 @@ class RequestService
 
     public function createResubRequest() {}
 
-    public function createDelRequest() {}
+    public function createDelRequest(array $validated, User $user) {
+      $userId = $user->id;
+
+      DB::transaction(function() use($validated, $userId) {
+        $requestItem = RequestModel::create([
+          "type" => "del",
+          "title" => $validated["title"],
+          "reason" => $validated["reason"],
+          "status" => "coordinator_approval",
+          "user_id" => $userId,
+          "file_id" => $validated["fileId"],
+        ]);
+
+        /**
+         * Creates a duplicate version with the id of the 
+         * delete request and set the status to pending to
+         * avoid conflicting with the file's latest version  
+         */
+        $relatedVersion = Version::findOrFail($validated["latestVersionId"]);
+
+        $newVersion = $relatedVersion->replicate()->fill([
+          "request_id" => $requestItem->id,
+          "status" => "pending"
+        ]);
+
+        $newVersion->save();
+      });
+    }
 
     public function updateUplRequest(array $validated, User $user) {
       $userId = $user->id;
       $decision = null;
+
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
       /**
        * Checks if the current user is manager or not
@@ -165,7 +197,15 @@ class RequestService
         /**
          * updates all requests without the managers_approval status
          */
-        $this->updateNonManagerRequest($validated, $userId);
+        $decision = $this->updateNonManagerRequest($validated, $userId);
+      }
+
+      /**
+       * NOTE: Change this...
+       */
+      if($decision && $requestItem->type === "del") {
+        $this->finalizeRequest($requestItem, $decision);
+        return;
       }
       
       if($decision !== null) {
@@ -178,7 +218,7 @@ class RequestService
     }
 
     public function updateNonManagerRequest(array $validated, int $userId) {
-      DB::transaction(function () use($validated, $userId) {
+      return DB::transaction(function () use($validated, $userId) {
         $comment = $validated['comment'];
         $requestItem = RequestModel::where("id", $validated['requestId'])->firstOrFail();
         
@@ -205,6 +245,15 @@ class RequestService
             "request_id" => $validated['requestId']
           ]);
         }
+
+        /**
+         * Returns true if a delete request is approved
+         */
+        if($requestItem->status === "approved" && $requestItem->type === "del") {
+          return true;
+        }
+
+        return null;
       });
     }
 
@@ -225,9 +274,29 @@ class RequestService
 
           return;
         }
+
+        /**
+         * Deletes the related file if reques type is "del"
+         */
+        if($requestItem->type === "del") {
+          $requestItem->update([
+            "status" => "approved",
+          ]);
+
+          $relatedVersion = $requestItem->version;
+          
+          File::destroy($requestItem->file_id);
+
+          $relatedVersion->delete();
+
+          return;
+        }
       
         $relatedVersion = $requestItem->load('version')->version;
         
+        /**
+         * Creates a file and updates the file_id of both the version and request 
+         */
         if($requestItem->type === "upl") {
           $file = File::create([
             "title" => $relatedVersion->file_title,
@@ -243,6 +312,9 @@ class RequestService
           ]);
         }
 
+        /**
+         * Updates the related file
+         */
         if($requestItem->type === "rev") {
           $relatedFile = $relatedVersion->load('file')->file;
 
