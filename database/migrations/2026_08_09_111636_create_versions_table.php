@@ -26,8 +26,8 @@ return new class extends Migration
             $table->enum('status', ['pending', 'published', 'rejected']);
             $table->string('file_name');
             $table->string('file_path');
-            $table->foreignId('file_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('request_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('file_id')->nullable()->constrained()->onDelete("set null");
+            $table->foreignId('request_id')->nullable()->constrained()->onDelete("set null");
             $table->timestamps();
         });
     }
