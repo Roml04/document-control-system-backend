@@ -8,8 +8,12 @@ if(!function_exists('getNextStatus')) {
       throw new InvalidArgumentException(("Status is already approved"));
     }
 
-    if($status === "coordinator_approval" && $reqType === "upl") {
+    if($status === "coordinator_approval" && ($reqType === "upl" || $reqType === "del")) {
       return "superior_approval";
+    }
+
+    if($status === "superior_approval" && ($reqType === "del")) {
+      return "approved";
     }
 
     $statusArr = [

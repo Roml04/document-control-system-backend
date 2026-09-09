@@ -111,33 +111,37 @@ class RequestService
     }
 
     public function createRevRequest(array $validated, User $user) {
-      $versionWithFile = Version::findOrFail($validated["latestVersionId"]);
+      $version = Version::findOrFail($validated["latestVersionId"]);
       $userId = $user->id;
 
-      DB::transaction(function () use($validated, $versionWithFile, $userId) {
+      DB::transaction(function () use($validated, $version, $userId) {
         $requestItem = RequestModel::create([
           "type" => 'rev',
           "title" => $validated['title'],
           "reason" => $validated['reason'],
           "status" => "coordinator_approval",
-          "user_id" => $userId
+          "user_id" => $userId,
+          "file_id" => $version->file->id
         ]);
 
+        /**
+         * NOTE: Use replicate here
+         */
         Version::create([
-          "file_title" => $versionWithFile->file_title,
-          "file_type" => $versionWithFile->file_type,
-          "originator" => $versionWithFile->originator,
-          "department" => $versionWithFile->department,
-          "revision_number" => $versionWithFile->revision_number,
-          "revision_details" => $versionWithFile->revision_details,
-          "upload_date" => $versionWithFile->upload_date,
-          "revision_date" => $versionWithFile->revision_date,
-          "approver" => $versionWithFile->approver,
-          "approved_date" => $versionWithFile->approved_date,
+          "file_title" => $version->file_title,
+          "file_type" => $version->file_type,
+          "originator" => $version->originator,
+          "department" => $version->department,
+          "revision_number" => $version->revision_number,
+          "revision_details" => $version->revision_details,
+          "upload_date" => $version->upload_date,
+          "revision_date" => $version->revision_date,
+          "approver" => $version->approver,
+          "approved_date" => $version->approved_date,
           "status" => "pending",
-          "file_name" => $versionWithFile->file_name,
-          "file_path" => $versionWithFile->file_path,
-          "file_id" => $versionWithFile->file_id,
+          "file_name" => $version->file_name,
+          "file_path" => $version->file_path,
+          "file_id" => $version->file_id,
           "request_id" => $requestItem->id,
         ]);
       });
@@ -145,9 +149,40 @@ class RequestService
 
     public function createResubRequest() {}
 
+    public function createDelRequest(array $validated, User $user) {
+      $userId = $user->id;
+
+      DB::transaction(function() use($validated, $userId) {
+        $requestItem = RequestModel::create([
+          "type" => "del",
+          "title" => $validated["title"],
+          "reason" => $validated["reason"],
+          "status" => "coordinator_approval",
+          "user_id" => $userId,
+          "file_id" => $validated["fileId"],
+        ]);
+
+        /**
+         * Creates a duplicate version with the id of the 
+         * delete request and set the status to pending to
+         * avoid conflicting with the file's latest version  
+         */
+        $relatedVersion = Version::findOrFail($validated["latestVersionId"]);
+
+        $newVersion = $relatedVersion->replicate()->fill([
+          "request_id" => $requestItem->id,
+          "status" => "pending"
+        ]);
+
+        $newVersion->save();
+      });
+    }
+
     public function updateUplRequest(array $validated, User $user) {
       $userId = $user->id;
       $decision = null;
+
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
       /**
        * Checks if the current user is manager or not
@@ -162,7 +197,15 @@ class RequestService
         /**
          * updates all requests without the managers_approval status
          */
-        $this->updateNonManagerRequest($validated, $userId);
+        $decision = $this->updateNonManagerRequest($validated, $userId);
+      }
+
+      /**
+       * NOTE: Change this...
+       */
+      if($decision && $requestItem->type === "del") {
+        $this->finalizeRequest($requestItem, $decision);
+        return;
       }
       
       if($decision !== null) {
@@ -175,7 +218,7 @@ class RequestService
     }
 
     public function updateNonManagerRequest(array $validated, int $userId) {
-      DB::transaction(function () use($validated, $userId) {
+      return DB::transaction(function () use($validated, $userId) {
         $comment = $validated['comment'];
         $requestItem = RequestModel::where("id", $validated['requestId'])->firstOrFail();
         
@@ -202,51 +245,21 @@ class RequestService
             "request_id" => $validated['requestId']
           ]);
         }
+
+        /**
+         * Returns true if a delete request is approved
+         */
+        if($requestItem->status === "approved" && $requestItem->type === "del") {
+          return true;
+        }
+
+        return null;
       });
     }
 
-    public function finalizeRequest(RequestModel $requestItem, bool $decision) {
+    public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
-        if($decision) {
-          $relatedVersion = $requestItem->load('version')->version;
-
-          if($requestItem->type === "upl") {
-            $file = File::create([
-              "title" => $relatedVersion->file_title,
-              "type" => $relatedVersion->file_type
-            ]);
-
-            $relatedVersion->update([
-              "file_id" => $file->id,
-            ]);
-          }
-
-          if($requestItem->type === "rev") {
-            $relatedFile = $relatedVersion->load('file')->file;
-
-            $relatedFile->update([
-              'title' => $relatedVersion->file_title,
-              'type' => $relatedVersion->file_type
-            ]);
-          }
-
-          if($requestItem->type === "resub") {
-            /**
-             * Upsert
-             */
-          }
-
-          $requestItem->update([
-            "status" => "approved"
-          ]);
-
-          $relatedVersion->update([
-            "approved_date" => now(),
-            "status" => "published"
-          ]);
-
-        } else {
-
+        if(!$decision) {
           $relatedVersion = $requestItem->load('version')->version;
           
           $requestItem->update([
@@ -258,7 +271,73 @@ class RequestService
           ]);
 
           Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
+
+          return;
         }
+
+        /**
+         * Deletes the related file if reques type is "del"
+         */
+        if($requestItem->type === "del") {
+          $requestItem->update([
+            "status" => "approved",
+          ]);
+
+          $relatedVersion = $requestItem->version;
+          
+          File::destroy($requestItem->file_id);
+
+          $relatedVersion->delete();
+
+          return;
+        }
+      
+        $relatedVersion = $requestItem->load('version')->version;
+        
+        /**
+         * Creates a file and updates the file_id of both the version and request 
+         */
+        if($requestItem->type === "upl") {
+          $file = File::create([
+            "title" => $relatedVersion->file_title,
+            "type" => $relatedVersion->file_type
+          ]);
+
+          $relatedVersion->update([
+            "file_id" => $file->id,
+          ]);
+
+          $requestItem->update([
+            "file_id" => $file->id,
+          ]);
+        }
+
+        /**
+         * Updates the related file
+         */
+        if($requestItem->type === "rev") {
+          $relatedFile = $relatedVersion->load('file')->file;
+
+          $relatedFile->update([
+            'title' => $relatedVersion->file_title,
+            'type' => $relatedVersion->file_type
+          ]);
+        }
+
+        if($requestItem->type === "resub") {
+          /**
+           * Upsert
+           */
+        }
+
+        $requestItem->update([
+          "status" => "approved",
+        ]);
+
+        $relatedVersion->update([
+          "approved_date" => now(),
+          "status" => "published"
+        ]);
       });
     }
 }
