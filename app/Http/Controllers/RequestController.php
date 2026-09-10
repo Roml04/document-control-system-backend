@@ -121,12 +121,14 @@ class RequestController extends Controller
         break;
       
       case "rev":
+        $this->requestService->updateRevRequest($validated, $user);
         break;
 
       case "resub":
         break;
       
       case "del":
+        $this->requestService->updateDelRequest($validated);
         break;
       
       default: 
