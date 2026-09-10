@@ -179,25 +179,71 @@ class RequestService
     }
 
     public function updateUplRequest(array $validated, User $user) {
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
+      
+      $reqStatus = $requestItem->status;
+      
+      $userId = $user->id;
+
+      if($reqStatus === "managers_approval") {
+        $decision = $this->managersApprovalService
+          ->updateManagerDecision($validated, $userId);
+
+        // $decision = $this->managersApprovalService
+        //   ->areAllApproved($validated['requestId']);
+
+        if($decision !== null) {
+          $this->finalizeRequest($requestItem, $decision);
+        }
+
+        return;
+      }
+
+
+      if($reqStatus !== "managers_approval") {
+        $requestItem->update([
+          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+        ]);
+
+        $reqStatus = $requestItem->status;
+      }
+
+      if($reqStatus === "managers_approval") {
+        $this->managersApprovalService->createManagerDecisions($requestItem->id);
+      }
+
+
+      if($reqStatus === "denied") {
+        $this->finalizeRequest($requestItem, false);
+      }
+
+      if($reqStatus === "approved") {
+        $this->finalizeRequest($requestItem, true);
+      }
+    }
+
+    public function updateUplRequest_DEPRECATED(array $validated, User $user) {
       $userId = $user->id;
       $decision = null;
 
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
       /**
+       * updates all requests without the managers_approval status
+       */
+      if(!$user->role === "manager") {
+        $decision = $this->updateNonManagerRequest($validated, $userId);
+      }
+
+      /**
        * Checks if the current user is manager or not
        */
-      if($user->role === UserRole::Manager->value) {
+      if($user->role === "manager") {
         $this->managersApprovalService
           ->updateManagerDecision($validated, $userId);
 
         $decision = $this->managersApprovalService
-          ->checkAllDecisions($validated['requestId']);
-      } else {
-        /**
-         * updates all requests without the managers_approval status
-         */
-        $decision = $this->updateNonManagerRequest($validated, $userId);
+          ->areAllApproved($validated['requestId']);
       }
 
       /**
@@ -260,11 +306,12 @@ class RequestService
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
         if(!$decision) {
-          $relatedVersion = $requestItem->load('version')->version;
+          // $relatedVersion = $requestItem->load('version')->version;
+          $relatedVersion = $requestItem->version;
           
-          $requestItem->update([
-            "status" => "denied"
-          ]);
+          // $requestItem->update([
+          //   "status" => "denied"
+          // ]);
 
           $relatedVersion->update([
             "status" => "rejected"
