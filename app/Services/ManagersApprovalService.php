@@ -36,7 +36,6 @@ class ManagersApprovalService
      * Updates the decision of the current manager on a certain request.
      */
     public function updateManagerDecision(array $validated, int $userId) {  
-      $comment = $validated['comment'];
       $requestId = $validated['requestId'];
 
       $authManagerDecision = ManagersApproval::with('request')
@@ -47,14 +46,6 @@ class ManagersApprovalService
         ->firstOrFail();
 
       $authManagerDecision->update(['decision' => $validated['isApproved'] ? "approved" : "denied", "decided_at" => now()]);
-
-      if($comment) {
-        Comment::create([
-          "content" => $comment,
-          "user_id" => $userId,
-          "request_id" => $requestId
-        ]);
-      }
 
       return $this->areAllApproved($requestId);
     }
