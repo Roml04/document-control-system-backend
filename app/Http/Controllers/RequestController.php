@@ -113,7 +113,27 @@ class RequestController extends Controller
 
     $user = $request->user();
 
-    $this->requestService->updateUplRequest($validated, $user);
+    $reqType = RequestModel::findOrFail($validated['requestId'])->type;
+
+    switch($reqType) {
+      case "upl":
+        $this->requestService->updateUplRequest($validated, $user);
+        break;
+      
+      case "rev":
+        break;
+
+      case "resub":
+        break;
+      
+      case "del":
+        break;
+      
+      default: 
+
+    }
+
+    // $this->requestService->updateUplRequest($validated, $user);
 
     return response()->json([
       "ok" => true,
