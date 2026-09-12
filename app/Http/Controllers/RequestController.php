@@ -128,7 +128,7 @@ class RequestController extends Controller
         break;
       
       case "del":
-        $this->requestService->updateDelRequest($validated);
+        $this->requestService->updateDelRequest($validated, $user);
         break;
       
       default: 
