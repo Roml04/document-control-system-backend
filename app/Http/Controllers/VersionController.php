@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\VersionResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
@@ -84,7 +85,7 @@ class VersionController extends Controller
         ]);
 
         $version->request->update([
-          "status" => getNextStatus("rev", $version->request->status)
+          "status" => getNextStatus("rev", $version->request->status),
         ]);
 
         Storage::move("/draft/$prevFilePath", $filePath);
@@ -94,6 +95,38 @@ class VersionController extends Controller
         "ok" => true,
         "data" => null,
         "message" => "Successfully patched version"
+      ]);
+    }
+
+    public function getStatus(Version $version) {
+      if(!$version->edit_session_started_at || !$version->draft_saved_at) {
+        return response()->json([
+          "saved" => false,
+          "start" => $version->edit_session_started_at,
+          "end" => $version->draft_saved_at,
+          "difference" => null
+        ]);
+      }
+
+      $editSessionStarted = Carbon::parse($version->edit_session_started_at);
+      $draftSaved = Carbon::parse($version->draft_saved_at);
+
+      $timeDiff = $editSessionStarted->diffInSeconds($draftSaved);
+
+      if($timeDiff >= 5) {
+        return response()->json([
+          "saved" => true,
+          "start" => $editSessionStarted,
+          "end" => $draftSaved,
+          "difference" => $timeDiff
+        ]);
+      }
+
+      return response()->json([
+        "saved" => false,
+        "start" => $editSessionStarted,
+        "end" => $draftSaved,
+        "difference" => $timeDiff
       ]);
     }
 }
