@@ -229,6 +229,10 @@ class RequestService
         if(!$decision) {
           $relatedVersion = $requestItem->version;
 
+          $requestItem->update([
+            "status" => "denied"
+          ]);
+          
           $relatedVersion->update([
             "status" => "rejected"
           ]);
