@@ -50,12 +50,20 @@ class OnlyOfficeController extends Controller
        * Checks if the file is existing on /draft/versions and 
        * copies the original file and put it into /draft/versions.
        */
+      $version->update([
+        "draft_saved_at" => null,
+        "edit_session_started_at" => null
+      ]);
+
       if(Storage::missing("/draft/$version->file_path")) {
         Storage::copy($version->file_path, "/draft/$version->file_path");
       }
 
       $config = $this->onlyOfficeService->buildEditConfig($version);
-      
+      $version->update([
+        "edit_session_started_at" => now()
+      ]);
+
       return response()->json([
         'config' => $config,
       ]);
@@ -64,6 +72,10 @@ class OnlyOfficeController extends Controller
     public function callback(Request $request, Version $version) {
 
       $savedStatuses = [2, 3, 6, 7];
+
+      /**
+       * 4 - no changes done
+       */
       
       if(in_array($request["status"], $savedStatuses)) {
         /**
@@ -71,6 +83,15 @@ class OnlyOfficeController extends Controller
          */
         $contents = file_get_contents($request["url"]);
         Storage::disk("local")->put("/draft/$version->file_path", $contents);
+        $version->update([
+          "draft_saved_at" => now()
+        ]);
+      }
+
+      if($request["status"] === 4) {
+        $version->update([
+          "draft_saved_at" => now()
+        ]);
       }
 
       return response()->json(["error" => 0]);

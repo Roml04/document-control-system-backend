@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get("/{version}", "view");
     Route::patch("/{version}", "edit");
     Route::get("/{version}/file", "download");
+    Route::get("/{version}/status", 'getStatus');
   });
 
   Route::prefix('comment')->controller(CommentController::class)->group(function() {

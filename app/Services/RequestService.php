@@ -179,93 +179,60 @@ class RequestService
     }
 
     public function updateUplRequest(array $validated, User $user) {
-      $userId = $user->id;
-      $decision = null;
-
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      /**
-       * Checks if the current user is manager or not
-       */
-      if($user->role === UserRole::Manager->value) {
-        $this->managersApprovalService
-          ->updateManagerDecision($validated, $userId);
-
-        $decision = $this->managersApprovalService
-          ->checkAllDecisions($validated['requestId']);
-      } else {
-        /**
-         * updates all requests without the managers_approval status
-         */
-        $decision = $this->updateNonManagerRequest($validated, $userId);
-      }
-
-      /**
-       * NOTE: Change this...
-       */
-      if($decision && $requestItem->type === "del") {
-        $this->finalizeRequest($requestItem, $decision);
-        return;
-      }
-      
-      if($decision !== null) {
-        $request = ManagersApproval::with('request')
-          ->where(['request_id' => $validated['requestId'], 'manager_id' => $userId])
-          ->firstOrFail()->request;
-
-        $this->finalizeRequest($request, $decision);
-      }
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
     }
 
-    public function updateNonManagerRequest(array $validated, int $userId) {
-      return DB::transaction(function () use($validated, $userId) {
-        $comment = $validated['comment'];
-        $requestItem = RequestModel::where("id", $validated['requestId'])->firstOrFail();
-        
-        $requestItem->update([
-          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+    public function updateRevRequest(array $validated, User $user) {
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
+
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
+    }
+
+    public function updateDelRequest(array $validated, User $user) {
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
+
+      $reqStatus = $requestItem->status;
+
+      $requestItem->update([
+        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+      ]);
+
+      $reqStatus = $requestItem->status;
+
+      $comment = $validated["comment"];
+
+      if($comment) {
+        Comment::create([
+          "content" => $comment,
+          "user_id" => $user->id,
+          "request_id" => $validated['requestId']
         ]);
+      }
+
+      if($reqStatus === "denied") {
+        $this->finalizeRequest($requestItem, false);
         
-        if($requestItem->status === "denied") {
-          $requestItem->version->update([
-            "status" => "rejected"
-          ]);
+        return;
+      }
 
-          Storage::move($requestItem->version->file_path, "/rejected/" . $requestItem->version->file_path);
-        }
-
-        if($requestItem->status === "managers_approval") {
-          $this->managersApprovalService->createManagerDecisions($requestItem->id);
-        }
-
-        if($comment) {
-          Comment::create([
-            "content" => $comment,
-            "user_id" => $userId,
-            "request_id" => $validated['requestId']
-          ]);
-        }
-
-        /**
-         * Returns true if a delete request is approved
-         */
-        if($requestItem->status === "approved" && $requestItem->type === "del") {
-          return true;
-        }
-
-        return null;
-      });
+      if($reqStatus === "approved") {
+        $this->finalizeRequest($requestItem, true);
+        
+        return;
+      }
     }
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
         if(!$decision) {
-          $relatedVersion = $requestItem->load('version')->version;
-          
+          $relatedVersion = $requestItem->version;
+
           $requestItem->update([
             "status" => "denied"
           ]);
-
+          
           $relatedVersion->update([
             "status" => "rejected"
           ]);
@@ -340,4 +307,61 @@ class RequestService
         ]);
       });
     }
+
+    public function approvalProcess(string $reqStatus, array $validated, RequestModel $requestItem, int $userId) {
+
+      $comment = $validated["comment"];
+
+      if($reqStatus === "managers_approval") {
+        $decision = $this->managersApprovalService
+          ->updateManagerDecision($validated, $userId);
+
+        if($decision !== null) {
+          $this->finalizeRequest($requestItem, $decision);
+        }
+
+        if($comment) {
+          Comment::create([
+            "content" => $comment,
+            "user_id" => $userId,
+            "request_id" => $validated['requestId']
+          ]);
+        }
+
+        return;
+      }
+
+      $requestItem->update([
+        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+      ]);
+
+      if($comment) {
+        Comment::create([
+          "content" => $comment,
+          "user_id" => $userId,
+          "request_id" => $validated['requestId']
+        ]);
+      }
+
+      $reqStatus = $requestItem->status;
+
+      if($reqStatus === "managers_approval") {
+        $this->managersApprovalService->createManagerDecisions($requestItem->id);
+
+        return;
+      }
+
+      if($reqStatus === "denied") {
+        $this->finalizeRequest($requestItem, false);
+
+        return;
+      }
+
+      if($reqStatus === "approved") {
+        $this->finalizeRequest($requestItem, true);
+
+        return;
+      }
+    }
 }
+

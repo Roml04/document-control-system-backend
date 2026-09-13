@@ -36,7 +36,6 @@ class ManagersApprovalService
      * Updates the decision of the current manager on a certain request.
      */
     public function updateManagerDecision(array $validated, int $userId) {  
-      $comment = $validated['comment'];
       $requestId = $validated['requestId'];
 
       $authManagerDecision = ManagersApproval::with('request')
@@ -48,21 +47,16 @@ class ManagersApprovalService
 
       $authManagerDecision->update(['decision' => $validated['isApproved'] ? "approved" : "denied", "decided_at" => now()]);
 
-      if($comment) {
-        Comment::create([
-          "content" => $comment,
-          "user_id" => $userId,
-          "request_id" => $requestId
-        ]);
-      }
+      return $this->areAllApproved($requestId);
     }
 
     /**
      * Checks all the decisions related to a certain request and returns a bool value.
      * The returned value is TRUE if all decisions are approved
      * The returned value is FALSE if at least one decision is denied. 
+     * The returned value is NULL if not all managers have decided yet.
      */
-    public function checkAllDecisions(int $requestId) {
+    public function areAllApproved(int $requestId) {
       $allDecisions = ManagersApproval::where(['request_id' => $requestId])->get();
       /**
        * Checks if there are no pending decisions and if there is at least one decision that was denied
