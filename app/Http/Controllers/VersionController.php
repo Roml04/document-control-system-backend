@@ -21,7 +21,7 @@ class VersionController extends Controller
       ]);
     }
 
-    public function store(Request $request) {
+    public function store() {
       return response()->json([
         "ok" => true,
         "data" => [],
