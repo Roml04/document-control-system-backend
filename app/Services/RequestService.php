@@ -73,7 +73,7 @@ class RequestService
     public function createUplRequest(array $validated, User $user, UploadedFile $uploadedFile) {
       $requestingUserId = $user->id;
 
-      $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . $uploadedFile->getClientOriginalExtension();
+      $fileName = formatFileName($user->first_name, $user->last_name, $uploadedFile->getClientOriginalExtension());
 
       $validatedWithFile = [
         ...$validated,
@@ -81,7 +81,7 @@ class RequestService
         "fileName" => $fileName,
         "filePath" => $uploadedFile->storeAs('versions', $fileName),
       ];
-
+      
       DB::transaction(function() use($validatedWithFile) {
         $requestModel = RequestModel::create([
           "type" => 'upl',
@@ -147,7 +147,46 @@ class RequestService
       });
     }
 
-    public function createResubRequest() {}
+    public function createResubRequest(array $validated, Request $request) {
+      DB::transaction(function () use($validated, $request) {
+        $uploadedFile = $request->file("file");
+
+        $user = $request->user();
+
+        $fileName = null;
+        $filePath = null;
+
+        if($uploadedFile) {
+          $fileName = formatFileName($user->first_name, $user->last_name, $uploadedFile->getClientOriginalExtension());
+          $filePath = $uploadedFile->storeAs("versions", $fileName);
+        }
+
+        $requestItem = RequestModel::with(["version"])->findOrFail($validated["requestId"]);
+
+        $requestItem->update([
+          "title" => $validated["title"],
+          "reason" => $validated["reason"],
+          "status" => "coordinator_approval"
+        ]);
+
+        $version = $requestItem->version()->latest()->firstOrFail();
+
+        $newVersion = $version->replicate()->fill([
+          "file_title" => $validated["fileTitle"],
+          "file_type" => $validated["fileType"],
+          "originator" => $validated["originator"],
+          "department" => $validated["department"],
+          "revision_number" => $validated["revisionNumber"],
+          "revision_details" => $validated["revisionDetails"],
+          "approver" => $validated["approver"],
+          "status" => "pending",
+          ...($fileName ? ["file_name" => $fileName] : []),
+          ...($filePath ? ["file_path" => $filePath] : []),
+        ]);
+
+        $newVersion->save();
+      });
+    }
 
     public function createDelRequest(array $validated, User $user) {
       $userId = $user->id;
