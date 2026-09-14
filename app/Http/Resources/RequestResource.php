@@ -29,7 +29,7 @@ class RequestResource extends JsonResource
           }),
 
           "version" => $this->whenLoaded('version', function() {
-            return new VersionResource($this->version);
+            return new VersionResource($this->version()->latest()->first());
           }),
 
           "commenters" => $this->comment
