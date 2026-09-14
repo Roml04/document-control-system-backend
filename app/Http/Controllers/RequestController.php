@@ -80,7 +80,21 @@ class RequestController extends Controller
         break;
 
       case "resub":
-        $this->requestService->createResubRequest();
+        $validated = $request->validate([
+          "requestId" => ["required", "exists:requests,id"],
+          "title" => ["required", "string"],
+          "reason" => ["required", "string"],
+          "versionId" => ["required", "exists:versions,id"],
+          "fileTitle" => ["required", "string"],
+          "fileType" => ["required", "in:document,checklist,form"],
+          "originator" => ["required", "string"],
+          "department" => ["required", "string"],
+          "revisionNumber" => ["required", "string"],
+          "revisionDetails" => ["required", "string"],
+          "approver" => ["required", "string"],
+        ]);
+
+        $this->requestService->createResubRequest($validated, $request);
         break;
 
       case "del":
