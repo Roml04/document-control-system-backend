@@ -20,7 +20,7 @@ class Request extends Model
 
     public function version()
     {
-        return $this->hasOne(Version::class);
+        return $this->hasMany(Version::class);
     }
 
     public function user()
