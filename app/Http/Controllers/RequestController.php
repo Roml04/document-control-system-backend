@@ -149,8 +149,6 @@ class RequestController extends Controller
 
     }
 
-    // $this->requestService->updateUplRequest($validated, $user);
-
     return response()->json([
       "ok" => true,
       "data" => null,

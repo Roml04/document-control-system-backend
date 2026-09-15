@@ -10,6 +10,7 @@ use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
+use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -265,9 +266,9 @@ class RequestService
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
-        if(!$decision) {
-          $relatedVersion = $requestItem->version()->latest()->firstOrFail();
+        $relatedVersion = $requestItem->version()->latest()->firstOrFail();
 
+        if(!$decision) {
           $requestItem->update([
             "status" => "denied"
           ]);
@@ -276,20 +277,25 @@ class RequestService
             "status" => "rejected"
           ]);
 
-          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
+          /**
+           * Move the published file to /rejected unless
+           * the request type is rev and the status is 
+           * coordinator_approval
+           */
+          if($requestItem->status !== "denied" || $requestItem->type !== "rev") {
+            Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
+          }
 
           return;
         }
 
         /**
-         * Deletes the related file if reques type is "del"
+         * Deletes the related file if request type is "del"
          */
         if($requestItem->type === "del") {
           $requestItem->update([
             "status" => "approved",
           ]);
-
-          $relatedVersion = $requestItem->version;
           
           File::destroy($requestItem->file_id);
 
@@ -298,8 +304,6 @@ class RequestService
           return;
         }
       
-        $relatedVersion = $requestItem->version()->latest()->firstOrFail();
-        
         /**
          * Creates a file and updates the file_id of both the version and request 
          */
