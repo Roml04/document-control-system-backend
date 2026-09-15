@@ -266,7 +266,7 @@ class RequestService
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
         if(!$decision) {
-          $relatedVersion = $requestItem->version;
+          $relatedVersion = $requestItem->version()->latest()->firstOrFail();
 
           $requestItem->update([
             "status" => "denied"
@@ -298,7 +298,7 @@ class RequestService
           return;
         }
       
-        $relatedVersion = $requestItem->load('version')->version;
+        $relatedVersion = $requestItem->version()->latest()->firstOrFail();
         
         /**
          * Creates a file and updates the file_id of both the version and request 
