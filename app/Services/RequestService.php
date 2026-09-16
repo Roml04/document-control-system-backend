@@ -205,7 +205,7 @@ class RequestService
         /**
          * Creates a duplicate version with the id of the 
          * delete request and set the status to pending to
-         * avoid conflicting with the file's latest version  
+         * avoid conflicti  ng with the file's latest version  
          */
         $relatedVersion = Version::findOrFail($validated["latestVersionId"]);
 
@@ -277,12 +277,16 @@ class RequestService
             "status" => "rejected"
           ]);
 
+          $currentPublished = Version::where(['file_id' => $relatedVersion->file_id, 'status' => 'published'])
+            ->first();
+
+          $isSameFile = $currentPublished && $currentPublished->file_path === $relatedVersion->file_path;
           /**
-           * Move the published file to /rejected unless
-           * the request type is rev and the status is 
-           * coordinator_approval
+           * Move the published file to /rejected if
+           * the published file and the current file
+           * is not the same
            */
-          if($requestItem->status !== "denied" || $requestItem->type !== "rev") {
+          if(!$isSameFile) {
             Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
           }
 
