@@ -66,7 +66,7 @@ class VersionController extends Controller
 
         $user = $version->request->load('user')->user;
 
-        $prevFilePath = $version->file_path;
+        $prevFileName = $version->file_name;
 
         $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . pathinfo($version->file_path, PATHINFO_EXTENSION);
         $filePath = "versions/" . $fileName;
@@ -85,10 +85,14 @@ class VersionController extends Controller
         ]);
 
         $version->request->update([
-          "status" => getNextStatus("rev", $version->request->status),
+          "status" => getNextStatus("rev", $version->request->status, $version->request->was_edited),
         ]);
 
-        Storage::move("/draft/$prevFilePath", $filePath);
+        /**
+         * Moves the edited file from /draft to /versions
+         * and renames the file
+         */
+        Storage::move("/draft/$prevFileName", $filePath);
       });
 
       return response()->json([

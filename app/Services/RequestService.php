@@ -72,13 +72,11 @@ class RequestService
     }
 
     public function createUplRequest(array $validated, User $user, UploadedFile $uploadedFile) {
-      $requestingUserId = $user->id;
-
       $fileName = formatFileName($user->first_name, $user->last_name, $uploadedFile->getClientOriginalExtension());
 
       $validatedWithFile = [
         ...$validated,
-        "userId" => $requestingUserId,
+        "userId" => $user->id,
         "fileName" => $fileName,
         "filePath" => $uploadedFile->storeAs('versions', $fileName),
       ];
@@ -148,21 +146,42 @@ class RequestService
       });
     }
 
-    public function createResubRequest(array $validated, Request $request) {
-      DB::transaction(function () use($validated, $request) {
-        $uploadedFile = $request->file("file");
-
-        $user = $request->user();
-
+    public function createResubRequest(array $validated, User $user, UploadedFile | null $uploadedFile) {
+      DB::transaction(function () use($validated, $user, $uploadedFile) {
         $fileName = null;
         $filePath = null;
 
+        $requestItem = RequestModel::with(["version"])->findOrFail($validated["requestId"]);
+        $version = $requestItem->version()->latest()->firstOrFail();
+
+        if(!$uploadedFile) {
+
+          $fileName = formatFileName($user->first_name, $user->last_name, pathinfo($version->file_name, PATHINFO_EXTENSION));
+          $filePath = "/versions/$fileName";
+
+          if(Storage::exists("/draft/$version->file_name")) {
+            /**
+             * Moves the edited file from /draft to 
+             * /versions and renames it
+             */
+            Storage::move("/draft/$version->file_name", $filePath);
+          } else {
+            /**
+             * Creates a copy of the published version 
+             * on the same file directory
+             */
+            Storage::copy("/versions/$version->file_name", $filePath);
+          }
+        }
+
         if($uploadedFile) {
+          /**
+           * Saves the uploaded file in /versions if existing
+           * then changes the $fileName and $filePath
+           */
           $fileName = formatFileName($user->first_name, $user->last_name, $uploadedFile->getClientOriginalExtension());
           $filePath = $uploadedFile->storeAs("versions", $fileName);
         }
-
-        $requestItem = RequestModel::with(["version"])->findOrFail($validated["requestId"]);
 
         $requestItem->update([
           "title" => $validated["title"],
@@ -170,22 +189,29 @@ class RequestService
           "status" => "coordinator_approval"
         ]);
 
-        $version = $requestItem->version()->latest()->firstOrFail();
-
         $newVersion = $version->replicate()->fill([
-          "file_title" => $validated["fileTitle"],
-          "file_type" => $validated["fileType"],
-          "originator" => $validated["originator"],
-          "department" => $validated["department"],
-          "revision_number" => $validated["revisionNumber"],
-          "revision_details" => $validated["revisionDetails"],
-          "approver" => $validated["approver"],
+          ...($validated["fileTitle"] ? ["file_title" => $validated["fileTitle"]] : []),
+          ...($validated["fileType"] ? ["file_type" => $validated["fileType"]] : []),
+          ...($validated["originator"] ? ["originator" => $validated["originator"]] : []),
+          ...($validated["department"] ? ["department" => $validated["department"]] : []),
+          ...($validated["revisionNumber"] ? ["revision_number" => $validated["revisionNumber"]] : []),
+          ...($validated["revisionDetails"] ? ["revision_details" => $validated["revisionDetails"]] : []),
+          ...($validated["approver"] ? ["approver" => $validated["approver"]] : []),
           "status" => "pending",
           ...($fileName ? ["file_name" => $fileName] : []),
           ...($filePath ? ["file_path" => $filePath] : []),
         ]);
 
         $newVersion->save();
+
+        /**
+         * Deletes all comments
+         */
+        $requestItem->comment()->delete();
+
+        /**
+         * DEV-NOTE: Delete residual file in /draft
+         */
       });
     }
 
@@ -236,7 +262,7 @@ class RequestService
       $reqStatus = $requestItem->status;
 
       $requestItem->update([
-        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
       ]);
 
       $reqStatus = $requestItem->status;
@@ -281,14 +307,24 @@ class RequestService
             ->first();
 
           $isSameFile = $currentPublished && $currentPublished->file_path === $relatedVersion->file_path;
+
+          $requestItem->update([
+            "was_edited" => !$isSameFile
+          ]);
           /**
            * Move the published file to /rejected if
            * the published file and the current file
-           * is not the same
+           * is not the same and update the file_path
            */
           if(!$isSameFile) {
-            Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
-          }
+            $rejectedVersionFilePath = "/rejected/$relatedVersion->file_name";
+
+            Storage::move($relatedVersion->file_path, $rejectedVersionFilePath);
+
+            $relatedVersion->update([
+              "file_path" => $rejectedVersionFilePath
+            ]);
+          }    
 
           return;
         }
@@ -379,7 +415,7 @@ class RequestService
       }
 
       $requestItem->update([
-        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
       ]);
 
       if($comment) {
@@ -401,7 +437,7 @@ class RequestService
       if($reqStatus === "denied") {
         $this->finalizeRequest($requestItem, false);
 
-        return;
+        return; 
       }
 
       if($reqStatus === "approved") {

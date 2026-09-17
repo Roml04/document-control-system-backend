@@ -53,7 +53,7 @@ class OnlyOfficeService
     public function buildEditConfig(Version $version) {
       $url = $this->signUrl($version->id, "edit");
 
-      $lastModified = Storage::lastModified("/draft/$version->file_path");
+      $lastModified = Storage::lastModified("/draft/$version->file_name");
       $key = "version-$version->id-$lastModified";
 
       $config = [

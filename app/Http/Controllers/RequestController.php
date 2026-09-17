@@ -92,9 +92,10 @@ class RequestController extends Controller
           "revisionNumber" => ["required", "string"],
           "revisionDetails" => ["required", "string"],
           "approver" => ["required", "string"],
+          "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
         ]);
 
-        $this->requestService->createResubRequest($validated, $request);
+        $this->requestService->createResubRequest($validated, $request->user(), $request->file("file"));
         break;
 
       case "del":
