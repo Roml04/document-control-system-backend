@@ -21,6 +21,7 @@ class RequestResource extends JsonResource
           "reason" => $this->reason,
           "status" => $this->status,
           "userId" => $this->user_id,
+          "wasEdited" => $this->was_edited,
           "uploadDate" => $this->created_at->format('Y-m-d h:iA'),
           "updatedAt" => $this->updated_at->format('Y-m-d h:iA'),
 
