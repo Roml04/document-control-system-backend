@@ -21,7 +21,7 @@ class FileResource extends JsonResource
           "createdAt" => $this->created_at,
           "updatedAt" => $this->updated_at,
           
-          "latestVersion" => new VersionResource($this->version->sortByDesc('approved_date')->first()),
+          "latestVersion" => new VersionResource($this->version()->latest()->first()),
           "versions" => $this->whenLoaded('version', function() {
             return VersionResource::collection($this->version->where('status', 'published')->sortByDesc('approved_date'));
           })
