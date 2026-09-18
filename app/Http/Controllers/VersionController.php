@@ -116,25 +116,13 @@ class VersionController extends Controller
         ]);
       }
 
-      $editSessionStarted = Carbon::parse($version->edit_session_started_at);
-      $draftSaved = Carbon::parse($version->draft_saved_at);
-
-      $timeDiff = $editSessionStarted->diffInSeconds($draftSaved);
-
-      if($timeDiff >= 5) {
-        return response()->json([
-          "saved" => true,
-          "start" => $editSessionStarted,
-          "end" => $draftSaved,
-          "difference" => $timeDiff
-        ]);
-      }
+      $savedStatuses = [2, 3, 6, 7];
 
       return response()->json([
-        "saved" => false,
-        "start" => $editSessionStarted,
-        "end" => $draftSaved,
-        "difference" => $timeDiff
+        "saved" => in_array($version->last_save_status, $savedStatuses),
+        "start" => Carbon::parse($version->edit_session_started_at),
+        "end" => Carbon::parse($version->draft_saved_at),
+        "lastSaveStatus" => $version->last_save_status,
       ]);
     }
 }
