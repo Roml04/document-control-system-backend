@@ -26,7 +26,8 @@ class Version extends Model
         'file_id',
         'request_id',
         'edit_session_started_at',
-        'draft_saved_at'
+        'draft_saved_at',
+        'last_save_status'
     ];
 
     public function file()
