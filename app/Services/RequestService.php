@@ -317,7 +317,7 @@ class RequestService
            * is not the same and update the file_path
            */
           if(!$isSameFile) {
-            $rejectedVersionFilePath = "/rejected/$relatedVersion->file_name";
+            $rejectedVersionFilePath = "rejected/$relatedVersion->file_name";
 
             Storage::move($relatedVersion->file_path, $rejectedVersionFilePath);
 
