@@ -138,9 +138,6 @@ class RequestController extends Controller
       case "rev":
         $this->requestService->updateRevRequest($validated, $user);
         break;
-
-      case "resub":
-        break;
       
       case "del":
         $this->requestService->updateDelRequest($validated, $user);

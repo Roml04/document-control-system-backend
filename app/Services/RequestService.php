@@ -210,6 +210,11 @@ class RequestService
         $requestItem->comment()->delete();
 
         /**
+         * Deletes all previous manager decisions
+         */
+        $requestItem->managersApproval()->delete();
+
+        /**
          * DEV-NOTE: Delete residual file in /draft
          */
       });
