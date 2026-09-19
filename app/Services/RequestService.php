@@ -337,9 +337,19 @@ class RequestService
             "status" => "approved",
           ]);
           
-          File::destroy($requestItem->file_id);
+          $file = File::findOrFail($requestItem->file_id);
 
-          $relatedVersion->delete();
+          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_name");
+
+          $relatedVersion->update([
+            "status" => "rejected"
+          ]);
+
+          $file->version()->where(["status" => "published"])->latest()->firstOrFail()->update([
+            "status" => "rejected"
+          ]);
+
+          $file->delete();
 
           return;
         }
