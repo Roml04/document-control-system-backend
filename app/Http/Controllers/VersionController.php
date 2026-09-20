@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\VersionResource;
 use App\Models\Request as RequestModel;
 use App\Models\Version;
+use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
@@ -20,7 +21,7 @@ class VersionController extends Controller
       ]);
     }
 
-    public function store(Request $request) {
+    public function store() {
       return response()->json([
         "ok" => true,
         "data" => [],
@@ -49,6 +50,7 @@ class VersionController extends Controller
     }
 
     public function edit(Request $request) {
+
       $validated = $request->validate([
         "id" => ["required", "exists:versions,id"],
         "fileTitle" => ["required", "string"],
@@ -58,17 +60,38 @@ class VersionController extends Controller
         "revisionNumber" => ["required", "string"],
         "revisionDetails" => ["required", "string"],
         "approver" => ["required", "string"],
+        "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
       ]);
 
-      DB::transaction(function () use($validated) {
-        $version = Version::with('request')->findOrFail($validated["id"]);
+      DB::transaction(function () use($validated, $request) {
+        $fileName = null;
+        $filePath = null;
 
+        $version = Version::with('request')->findOrFail($validated["id"]);
         $user = $version->request->load('user')->user;
 
-        $prevFilePath = $version->file_path;
+        $uploadedFile = $request->file("file");
+        $parentFileName = $version->file_name;
 
-        $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . pathinfo($version->file_path, PATHINFO_EXTENSION);
-        $filePath = "versions/" . $fileName;
+        if(!$uploadedFile) {
+          $fileName = formatFileName($user->first_name, $user->last_name, pathinfo($version->file_path, PATHINFO_EXTENSION));
+          $filePath = "versions/" . $fileName;
+
+          /**
+           * Moves the edited file from /draft to /versions
+           * and renames the file
+           */
+          if(Storage::exists("/draft/$parentFileName")) {
+            Storage::move("/draft/$parentFileName", $filePath);
+          } else {
+            Storage::copy("/versions/$parentFileName", $filePath);
+          }
+        }
+
+        if($uploadedFile) {
+          $fileName = formatFileName($user->first_name, $user->last_name, pathinfo($version->file_name, PATHINFO_EXTENSION));
+          $filePath = $uploadedFile->storeAs("versions", $fileName);
+        }
 
         $version->update([
           "file_title" => $validated["fileTitle"],
@@ -79,21 +102,39 @@ class VersionController extends Controller
           "revision_details" => $validated["revisionDetails"],
           "revision_date" => now(),
           "approver" => $validated["approver"],
-          "file_name" => $fileName,
-          "file_path" => $filePath,
+          ...($fileName ? ["file_name" => $fileName] : "/"),
+          ...($filePath ? ["file_path" => $filePath] : "/"),
         ]);
 
         $version->request->update([
-          "status" => getNextStatus("rev", $version->request->status)
+          "status" => getNextStatus("rev", $version->request->status, $version->request->was_edited),
         ]);
-
-        Storage::move("/draft/$prevFilePath", $filePath);
       });
 
       return response()->json([
         "ok" => true,
         "data" => null,
         "message" => "Successfully patched version"
+      ]);
+    }
+
+    public function getStatus(Version $version) {
+      if(!$version->edit_session_started_at || !$version->draft_saved_at) {
+        return response()->json([
+          "saved" => false,
+          "start" => $version->edit_session_started_at,
+          "end" => $version->draft_saved_at,
+          "difference" => null
+        ]);
+      }
+
+      $savedStatuses = [2, 3, 6, 7];
+
+      return response()->json([
+        "saved" => in_array($version->last_save_status, $savedStatuses),
+        "start" => Carbon::parse($version->edit_session_started_at),
+        "end" => Carbon::parse($version->draft_saved_at),
+        "lastSaveStatus" => $version->last_save_status,
       ]);
     }
 }

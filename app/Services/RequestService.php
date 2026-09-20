@@ -10,6 +10,7 @@ use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
+use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -71,17 +72,15 @@ class RequestService
     }
 
     public function createUplRequest(array $validated, User $user, UploadedFile $uploadedFile) {
-      $requestingUserId = $user->id;
-
-      $fileName = strtolower("$user->first_name$user->last_name") . "-" . now()->format('YmdHsu') . "." . $uploadedFile->getClientOriginalExtension();
+      $fileName = formatFileName($user->first_name, $user->last_name, $uploadedFile->getClientOriginalExtension());
 
       $validatedWithFile = [
         ...$validated,
-        "userId" => $requestingUserId,
+        "userId" => $user->id,
         "fileName" => $fileName,
         "filePath" => $uploadedFile->storeAs('versions', $fileName),
       ];
-
+      
       DB::transaction(function() use($validatedWithFile) {
         $requestModel = RequestModel::create([
           "type" => 'upl',
@@ -137,7 +136,6 @@ class RequestService
           "upload_date" => $version->upload_date,
           "revision_date" => $version->revision_date,
           "approver" => $version->approver,
-          "approved_date" => $version->approved_date,
           "status" => "pending",
           "file_name" => $version->file_name,
           "file_path" => $version->file_path,
@@ -147,7 +145,86 @@ class RequestService
       });
     }
 
-    public function createResubRequest() {}
+    public function createResubRequest(array $validated, User $user, UploadedFile | null $uploadedFile) {
+      DB::transaction(function () use($validated, $user, $uploadedFile) {
+        $fileName = null;
+        $filePath = null;
+
+        $requestItem = RequestModel::with(["version"])->findOrFail($validated["requestId"]);
+        $version = $requestItem->version()->latest()->firstOrFail();
+
+        if(!$uploadedFile) {
+
+          $fileName = formatFileName($user->first_name, $user->last_name, pathinfo($version->file_name, PATHINFO_EXTENSION));
+          $filePath = "/versions/$fileName";
+
+          if(Storage::exists("/draft/$version->file_name")) {
+            /**
+             * Moves the edited file from /draft to 
+             * /versions and renames it
+             */
+            Storage::move("/draft/$version->file_name", $filePath);
+          } elseif(Storage::exists("/versions/$version->file_name")) {
+            /**
+             * Creates a copy of the published version 
+             * on the same file directory
+             */
+            Storage::copy("/versions/$version->file_name", $filePath);
+          } else {
+            /**
+             * Copies the file from /rejected if the 
+             * does not exist on both /draft and /versions 
+             */
+            Storage::copy("/rejected/$version->file_name", $filePath);
+          }
+        }
+
+        if($uploadedFile) {
+          /**
+           * Saves the uploaded file in /versions if existing
+           * then changes the $fileName and $filePath
+           */
+          $fileName = formatFileName($user->first_name, $user->last_name, $uploadedFile->getClientOriginalExtension());
+          $filePath = $uploadedFile->storeAs("versions", $fileName);
+        }
+
+        $requestItem->update([
+          "title" => $validated["title"],
+          "reason" => $validated["reason"],
+          "status" => "coordinator_approval"
+        ]);
+
+        $newVersion = $version->replicate()->fill([
+          ...($validated["fileTitle"] ? ["file_title" => $validated["fileTitle"]] : []),
+          ...($validated["fileType"] ? ["file_type" => $validated["fileType"]] : []),
+          ...($validated["originator"] ? ["originator" => $validated["originator"]] : []),
+          ...($validated["department"] ? ["department" => $validated["department"]] : []),
+          ...($validated["revisionNumber"] ? ["revision_number" => $validated["revisionNumber"]] : []),
+          ...($validated["revisionDetails"] ? ["revision_details" => $validated["revisionDetails"]] : []),
+          ...($validated["approver"] ? ["approver" => $validated["approver"]] : []),
+          "approved_date" => null,
+          "status" => "pending",
+          ...($fileName ? ["file_name" => $fileName] : []),
+          ...($filePath ? ["file_path" => $filePath] : []),
+        ]);
+
+        $newVersion->save();
+
+        /**
+         * Deletes all comments
+         */
+        $requestItem->comment()->delete();
+
+        /**
+         * Deletes all previous manager decisions
+         */
+        $requestItem->managersApproval()->delete();
+
+        /**
+         * DEV-NOTE: Delete residual file in /draft
+         */
+      });
+    }
 
     public function createDelRequest(array $validated, User $user) {
       $userId = $user->id;
@@ -165,7 +242,7 @@ class RequestService
         /**
          * Creates a duplicate version with the id of the 
          * delete request and set the status to pending to
-         * avoid conflicting with the file's latest version  
+         * avoid conflicti  ng with the file's latest version  
          */
         $relatedVersion = Version::findOrFail($validated["latestVersionId"]);
 
@@ -179,121 +256,115 @@ class RequestService
     }
 
     public function updateUplRequest(array $validated, User $user) {
-      $userId = $user->id;
-      $decision = null;
-
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      /**
-       * Checks if the current user is manager or not
-       */
-      if($user->role === UserRole::Manager->value) {
-        $this->managersApprovalService
-          ->updateManagerDecision($validated, $userId);
-
-        $decision = $this->managersApprovalService
-          ->checkAllDecisions($validated['requestId']);
-      } else {
-        /**
-         * updates all requests without the managers_approval status
-         */
-        $decision = $this->updateNonManagerRequest($validated, $userId);
-      }
-
-      /**
-       * NOTE: Change this...
-       */
-      if($decision && $requestItem->type === "del") {
-        $this->finalizeRequest($requestItem, $decision);
-        return;
-      }
-      
-      if($decision !== null) {
-        $request = ManagersApproval::with('request')
-          ->where(['request_id' => $validated['requestId'], 'manager_id' => $userId])
-          ->firstOrFail()->request;
-
-        $this->finalizeRequest($request, $decision);
-      }
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
     }
 
-    public function updateNonManagerRequest(array $validated, int $userId) {
-      return DB::transaction(function () use($validated, $userId) {
-        $comment = $validated['comment'];
-        $requestItem = RequestModel::where("id", $validated['requestId'])->firstOrFail();
-        
-        $requestItem->update([
-          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status) : "denied",
+    public function updateRevRequest(array $validated, User $user) {
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
+
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
+    }
+
+    public function updateDelRequest(array $validated, User $user) {
+      $requestItem = RequestModel::findOrFail($validated["requestId"]);
+
+      $reqStatus = $requestItem->status;
+
+      $requestItem->update([
+        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
+      ]);
+
+      $reqStatus = $requestItem->status;
+
+      $comment = $validated["comment"];
+
+      if($comment) {
+        Comment::create([
+          "content" => $comment,
+          "user_id" => $user->id,
+          "request_id" => $validated['requestId']
         ]);
+      }
+
+      if($reqStatus === "denied") {
+        $this->finalizeRequest($requestItem, false);
         
-        if($requestItem->status === "denied") {
-          $requestItem->version->update([
-            "status" => "rejected"
-          ]);
+        return;
+      }
 
-          Storage::move($requestItem->version->file_path, "/rejected/" . $requestItem->version->file_path);
-        }
-
-        if($requestItem->status === "managers_approval") {
-          $this->managersApprovalService->createManagerDecisions($requestItem->id);
-        }
-
-        if($comment) {
-          Comment::create([
-            "content" => $comment,
-            "user_id" => $userId,
-            "request_id" => $validated['requestId']
-          ]);
-        }
-
-        /**
-         * Returns true if a delete request is approved
-         */
-        if($requestItem->status === "approved" && $requestItem->type === "del") {
-          return true;
-        }
-
-        return null;
-      });
+      if($reqStatus === "approved") {
+        $this->finalizeRequest($requestItem, true);
+        
+        return;
+      }
     }
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
       DB::transaction(function() use($requestItem, $decision) {
+        $relatedVersion = $requestItem->version()->latest()->firstOrFail();
+
         if(!$decision) {
-          $relatedVersion = $requestItem->load('version')->version;
-          
           $requestItem->update([
             "status" => "denied"
           ]);
-
+          
           $relatedVersion->update([
             "status" => "rejected"
           ]);
 
-          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_path");
+          $currentPublished = Version::where(['file_id' => $relatedVersion->file_id, 'status' => 'published'])
+            ->first();
+
+          $isSameFile = $currentPublished && $currentPublished->file_path === $relatedVersion->file_path;
+
+          $requestItem->update([
+            "was_edited" => !$isSameFile
+          ]);
+          /**
+           * Move the published file to /rejected if
+           * the published file and the current file
+           * is not the same and update the file_path
+           */
+          if(!$isSameFile) {
+            $rejectedVersionFilePath = "rejected/$relatedVersion->file_name";
+
+            Storage::move($relatedVersion->file_path, $rejectedVersionFilePath);
+
+            $relatedVersion->update([
+              "file_path" => $rejectedVersionFilePath
+            ]);
+          }    
 
           return;
         }
 
         /**
-         * Deletes the related file if reques type is "del"
+         * Deletes the related file if request type is "del"
          */
         if($requestItem->type === "del") {
           $requestItem->update([
             "status" => "approved",
           ]);
-
-          $relatedVersion = $requestItem->version;
           
-          File::destroy($requestItem->file_id);
+          $file = File::findOrFail($requestItem->file_id);
 
-          $relatedVersion->delete();
+          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_name");
+
+          $relatedVersion->update([
+            "status" => "rejected"
+          ]);
+
+          $file->version()->where(["status" => "published"])->latest()->firstOrFail()->update([
+            "status" => "rejected"
+          ]);
+
+          $file->delete();
 
           return;
         }
       
-        $relatedVersion = $requestItem->load('version')->version;
-        
         /**
          * Creates a file and updates the file_id of both the version and request 
          */
@@ -340,4 +411,61 @@ class RequestService
         ]);
       });
     }
+
+    public function approvalProcess(string $reqStatus, array $validated, RequestModel $requestItem, int $userId) {
+
+      $comment = $validated["comment"];
+
+      if($reqStatus === "managers_approval") {
+        $decision = $this->managersApprovalService
+          ->updateManagerDecision($validated, $userId);
+
+        if($decision !== null) {
+          $this->finalizeRequest($requestItem, $decision);
+        }
+
+        if($comment) {
+          Comment::create([
+            "content" => $comment,
+            "user_id" => $userId,
+            "request_id" => $validated['requestId']
+          ]);
+        }
+
+        return;
+      }
+
+      $requestItem->update([
+        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
+      ]);
+
+      if($comment) {
+        Comment::create([
+          "content" => $comment,
+          "user_id" => $userId,
+          "request_id" => $validated['requestId']
+        ]);
+      }
+
+      $reqStatus = $requestItem->status;
+
+      if($reqStatus === "managers_approval") {
+        $this->managersApprovalService->createManagerDecisions($requestItem->id);
+
+        return;
+      }
+
+      if($reqStatus === "denied") {
+        $this->finalizeRequest($requestItem, false);
+
+        return; 
+      }
+
+      if($reqStatus === "approved") {
+        $this->finalizeRequest($requestItem, true);
+
+        return;
+      }
+    }
 }
+

@@ -21,6 +21,7 @@ class RequestResource extends JsonResource
           "reason" => $this->reason,
           "status" => $this->status,
           "userId" => $this->user_id,
+          "wasEdited" => $this->was_edited,
           "uploadDate" => $this->created_at->format('Y-m-d h:iA'),
           "updatedAt" => $this->updated_at->format('Y-m-d h:iA'),
 
@@ -29,7 +30,7 @@ class RequestResource extends JsonResource
           }),
 
           "version" => $this->whenLoaded('version', function() {
-            return new VersionResource($this->version);
+            return new VersionResource($this->version()->latest()->first());
           }),
 
           "commenters" => $this->comment
