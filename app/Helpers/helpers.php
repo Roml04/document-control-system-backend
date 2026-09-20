@@ -41,6 +41,6 @@ if(!function_exists('getNextStatus')) {
 
 if(!function_exists('formatFileName')) {
   function formatFileName(string $userFirstName, string $userLastName, string $fileExtension) {
-      return strtolower("$userFirstName$userLastName") . "-" . now()->format('YmdHsu') . "." . $fileExtension;
+      return strtolower("$userFirstName$userLastName") . "-" . now()->format('YmdHisu') . "." . $fileExtension;
   }
 }

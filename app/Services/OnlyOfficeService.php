@@ -26,7 +26,7 @@ class OnlyOfficeService
      */
     public function buildViewConfig(Version $version) {
       $url = $this->signUrl($version->id, "view");
-      $key = "version-$version->id-" . now()->format('YmdHsu');
+      $key = "version-$version->id-" . now()->format('YmdHisu');
 
       $config = [
         "document" => [

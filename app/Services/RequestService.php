@@ -136,7 +136,6 @@ class RequestService
           "upload_date" => $version->upload_date,
           "revision_date" => $version->revision_date,
           "approver" => $version->approver,
-          "approved_date" => $version->approved_date,
           "status" => "pending",
           "file_name" => $version->file_name,
           "file_path" => $version->file_path,
@@ -165,12 +164,18 @@ class RequestService
              * /versions and renames it
              */
             Storage::move("/draft/$version->file_name", $filePath);
-          } else {
+          } elseif(Storage::exists("/versions/$version->file_name")) {
             /**
              * Creates a copy of the published version 
              * on the same file directory
              */
             Storage::copy("/versions/$version->file_name", $filePath);
+          } else {
+            /**
+             * Copies the file from /rejected if the 
+             * does not exist on both /draft and /versions 
+             */
+            Storage::copy("/rejected/$version->file_name", $filePath);
           }
         }
 
@@ -197,6 +202,7 @@ class RequestService
           ...($validated["revisionNumber"] ? ["revision_number" => $validated["revisionNumber"]] : []),
           ...($validated["revisionDetails"] ? ["revision_details" => $validated["revisionDetails"]] : []),
           ...($validated["approver"] ? ["approver" => $validated["approver"]] : []),
+          "approved_date" => null,
           "status" => "pending",
           ...($fileName ? ["file_name" => $fileName] : []),
           ...($filePath ? ["file_path" => $filePath] : []),

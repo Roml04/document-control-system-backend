@@ -76,6 +76,7 @@ class RequestController extends Controller
           "latestVersionId" => ["required", "exists:versions,id"],
         ]);
 
+
         $this->requestService->createRevRequest($validated, $request->user());
         break;
 
