@@ -26,7 +26,7 @@ class OnlyOfficeService
      */
     public function buildViewConfig(Version $version) {
       $url = $this->signUrl($version->id, "view");
-      $key = "version-$version->id-" . now()->format('YmdHsu');
+      $key = "version-$version->id-" . now()->format('YmdHisu');
 
       $config = [
         "document" => [
@@ -53,7 +53,7 @@ class OnlyOfficeService
     public function buildEditConfig(Version $version) {
       $url = $this->signUrl($version->id, "edit");
 
-      $lastModified = Storage::lastModified("/draft/$version->file_path");
+      $lastModified = Storage::lastModified("/draft/$version->file_name");
       $key = "version-$version->id-$lastModified";
 
       $config = [

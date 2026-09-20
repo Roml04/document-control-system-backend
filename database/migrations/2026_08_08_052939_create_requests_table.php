@@ -19,6 +19,7 @@ return new class extends Migration
             $table->enum('status', ['coordinator_approval', 'originator_edit', 'superior_approval', 'managers_approval', 'approved', 'denied']);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('file_id')->nullable()->constrained()->onDelete('set null');
+            $table->boolean('was_edited')->nullable();
             $table->timestamps();
         });
     }

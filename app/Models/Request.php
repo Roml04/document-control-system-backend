@@ -16,11 +16,12 @@ class Request extends Model
         'status',
         'user_id',
         'file_id',
+        'was_edited',
     ];
 
     public function version()
     {
-        return $this->hasOne(Version::class);
+        return $this->hasMany(Version::class);
     }
 
     public function user()

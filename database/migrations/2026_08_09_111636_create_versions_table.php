@@ -30,6 +30,7 @@ return new class extends Migration
             $table->foreignId('request_id')->nullable()->constrained()->onDelete("set null");
             $table->dateTime('edit_session_started_at')->nullable();
             $table->dateTime('draft_saved_at')->nullable();
+            $table->unsignedTinyInteger("last_save_status")->nullable();
             $table->timestamps();
         });
     }

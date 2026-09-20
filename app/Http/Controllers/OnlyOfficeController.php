@@ -30,7 +30,7 @@ class OnlyOfficeController extends Controller
     public function editFile(Request $request, Version $version) {
       abort_unless($request->hasValidSignature(), 403);
 
-      return Storage::response("/draft/" . $version->file_path);
+      return Storage::response("/draft/" . $version->file_name);
     }
 
     public function view(Version $version) {
@@ -46,17 +46,18 @@ class OnlyOfficeController extends Controller
     }
 
     public function edit(Version $version) {
+      $version->update([
+        "draft_saved_at" => null,
+        "edit_session_started_at" => null,
+        "last_save_status" => null,
+      ]);
+
       /**
        * Checks if the file is existing on /draft/versions and 
        * copies the original file and put it into /draft/versions.
        */
-      $version->update([
-        "draft_saved_at" => null,
-        "edit_session_started_at" => null
-      ]);
-
-      if(Storage::missing("/draft/$version->file_path")) {
-        Storage::copy($version->file_path, "/draft/$version->file_path");
+      if(Storage::missing("/draft/$version->file_name")) {
+        Storage::copy($version->file_path, "/draft/$version->file_name");
       }
 
       $config = $this->onlyOfficeService->buildEditConfig($version);
@@ -82,15 +83,17 @@ class OnlyOfficeController extends Controller
          * Saves the file to /draft/versions folder
          */
         $contents = file_get_contents($request["url"]);
-        Storage::disk("local")->put("/draft/$version->file_path", $contents);
+        Storage::disk("local")->put("/draft/$version->file_name", $contents);
         $version->update([
-          "draft_saved_at" => now()
+          "draft_saved_at" => now(),
+          "last_save_status" => $request["status"]
         ]);
       }
 
       if($request["status"] === 4) {
         $version->update([
-          "draft_saved_at" => now()
+          "draft_saved_at" => now(),
+          "last_save_status" => 4
         ]);
       }
 

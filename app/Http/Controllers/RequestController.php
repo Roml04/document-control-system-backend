@@ -76,11 +76,27 @@ class RequestController extends Controller
           "latestVersionId" => ["required", "exists:versions,id"],
         ]);
 
+
         $this->requestService->createRevRequest($validated, $request->user());
         break;
 
       case "resub":
-        $this->requestService->createResubRequest();
+        $validated = $request->validate([
+          "requestId" => ["required", "exists:requests,id"],
+          "title" => ["required", "string"],
+          "reason" => ["required", "string"],
+          "versionId" => ["required", "exists:versions,id"],
+          "fileTitle" => ["required", "string"],
+          "fileType" => ["required", "in:document,checklist,form"],
+          "originator" => ["required", "string"],
+          "department" => ["required", "string"],
+          "revisionNumber" => ["required", "string"],
+          "revisionDetails" => ["required", "string"],
+          "approver" => ["required", "string"],
+          "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
+        ]);
+
+        $this->requestService->createResubRequest($validated, $request->user(), $request->file("file"));
         break;
 
       case "del":
@@ -123,9 +139,6 @@ class RequestController extends Controller
       case "rev":
         $this->requestService->updateRevRequest($validated, $user);
         break;
-
-      case "resub":
-        break;
       
       case "del":
         $this->requestService->updateDelRequest($validated, $user);
@@ -134,8 +147,6 @@ class RequestController extends Controller
       default: 
 
     }
-
-    // $this->requestService->updateUplRequest($validated, $user);
 
     return response()->json([
       "ok" => true,
