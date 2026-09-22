@@ -10,13 +10,5 @@ Route::get('/', function () {
 });
 
 Route::get('/login', function () {
-    // $users = User::all(["first_name", "last_name"]);
-
-    // $files = File::all(["title", "type"]);
-    // $file = File::where('id', 1)->first();
-
-    // $request = Request::where('id', 1)->first();
-
-    // return $file->version;
     abort(403);
 });
