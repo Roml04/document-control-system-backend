@@ -2,18 +2,20 @@
 
 namespace App\Services;
 
-use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
+use App\Mail\DelRequestApproved;
+use App\Mail\RequestUpdated;
+use App\Mail\RevRequestApproved;
+use App\Mail\UplRequestApproved;
 use App\Models\Comment;
 use App\Models\File;
-use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
-use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class RequestService
@@ -299,6 +301,8 @@ class RequestService
         
         return;
       }
+
+      Mail::to($requestItem->user)->send(new RequestUpdated($requestItem));
     }
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
@@ -362,6 +366,7 @@ class RequestService
 
           $file->delete();
 
+          Mail::to($requestItem->user)->send(new DelRequestApproved($requestItem));
           return;
         }
       
@@ -380,49 +385,64 @@ class RequestService
 
           $requestItem->update([
             "file_id" => $file->id,
+            "status" => "approved",
           ]);
+
+          Mail::to($requestItem->user)->send(new UplRequestApproved($requestItem));
         }
 
         /**
          * Updates the related file
          */
         if($requestItem->type === "rev") {
-          $relatedFile = $relatedVersion->load('file')->file;
+          $relatedFile = $relatedVersion->file;
 
           $relatedFile->update([
             'title' => $relatedVersion->file_title,
             'type' => $relatedVersion->file_type
           ]);
-        }
 
-        if($requestItem->type === "resub") {
-          /**
-           * Upsert
-           */
+          $requestItem->update([
+            "status" => "approved",
+          ]);
         }
-
-        $requestItem->update([
-          "status" => "approved",
-        ]);
 
         $relatedVersion->update([
           "approved_date" => now(),
           "status" => "published"
         ]);
+
+        Mail::to($requestItem->user)->send(new RevRequestApproved($requestItem));
       });
     }
 
     public function approvalProcess(string $reqStatus, array $validated, RequestModel $requestItem, int $userId) {
 
-      $comment = $validated["comment"];
+      DB::transaction(function () use($reqStatus, $validated, $requestItem, $userId) {
+        $comment = $validated["comment"];
 
-      if($reqStatus === "managers_approval") {
-        $decision = $this->managersApprovalService
-          ->updateManagerDecision($validated, $userId);
+        if($reqStatus === "managers_approval") {
+          $decision = $this->managersApprovalService
+            ->updateManagerDecision($validated, $userId);
 
-        if($decision !== null) {
-          $this->finalizeRequest($requestItem, $decision);
+          if($decision !== null) {
+            $this->finalizeRequest($requestItem, $decision);
+          }
+
+          if($comment) {
+            Comment::create([
+              "content" => $comment,
+              "user_id" => $userId,
+              "request_id" => $validated['requestId']
+            ]);
+          }
+
+          return;
         }
+
+        $requestItem->update([
+          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
+        ]);
 
         if($comment) {
           Comment::create([
@@ -432,40 +452,31 @@ class RequestService
           ]);
         }
 
-        return;
-      }
+        $reqStatus = $requestItem->status;
 
-      $requestItem->update([
-        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
-      ]);
+        if($reqStatus !== "denied" || $reqStatus !== "approved") {
+          Mail::to($requestItem->user)->send(new RequestUpdated($requestItem));
+        }
 
-      if($comment) {
-        Comment::create([
-          "content" => $comment,
-          "user_id" => $userId,
-          "request_id" => $validated['requestId']
-        ]);
-      }
+        if($reqStatus === "managers_approval") {
+          $this->managersApprovalService->createManagerDecisions($requestItem->id);
 
-      $reqStatus = $requestItem->status;
+          return;
+        }
 
-      if($reqStatus === "managers_approval") {
-        $this->managersApprovalService->createManagerDecisions($requestItem->id);
+        if($reqStatus === "denied") {
+          $this->finalizeRequest($requestItem, false);
 
-        return;
-      }
+          return; 
+        }
 
-      if($reqStatus === "denied") {
-        $this->finalizeRequest($requestItem, false);
+        if($reqStatus === "approved") {
+          $this->finalizeRequest($requestItem, true);
 
-        return; 
-      }
+          return;
+        }
+      });
 
-      if($reqStatus === "approved") {
-        $this->finalizeRequest($requestItem, true);
-
-        return;
-      }
     }
 }
 
