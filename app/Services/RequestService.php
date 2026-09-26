@@ -4,17 +4,27 @@ namespace App\Services;
 
 use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
+use App\Mail\DelRequestApproved;
+use App\Mail\FileDeleted;
+use App\Mail\ManagerDecided;
+use App\Mail\NotifyCoordinator;
+use App\Mail\NotifyManagers;
+use App\Mail\NotifySuperior;
+use App\Mail\RequestDenied;
+use App\Mail\RequestUpdated;
+use App\Mail\RevRequestApproved;
+use App\Mail\UplRequestApproved;
 use App\Models\Comment;
 use App\Models\File;
-use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
-use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 
 class RequestService
 {
@@ -82,7 +92,7 @@ class RequestService
       ];
       
       DB::transaction(function() use($validatedWithFile) {
-        $requestModel = RequestModel::create([
+        $requestItem = RequestModel::create([
           "type" => 'upl',
           "title" => $validatedWithFile["title"],
           "reason" => $validatedWithFile["reason"],
@@ -104,8 +114,10 @@ class RequestService
           "file_name" => $validatedWithFile["fileName"],
           "file_path" => $validatedWithFile["filePath"], 
           "file_id" => $validatedWithFile["fileId"] ?? null,
-          "request_id" => $requestModel->id,
+          "request_id" => $requestItem->id,
         ]);
+
+        $this->notifyApprover(UserRole::Coordinator, $requestItem);
       });
     }
 
@@ -142,6 +154,8 @@ class RequestService
           "file_id" => $version->file_id,
           "request_id" => $requestItem->id,
         ]);
+        
+        $this->notifyApprover(UserRole::Coordinator, $requestItem);
       });
     }
 
@@ -223,6 +237,8 @@ class RequestService
         /**
          * DEV-NOTE: Delete residual file in /draft
          */
+
+        $this->notifyApprover(UserRole::Coordinator, $requestItem);
       });
     }
 
@@ -252,6 +268,8 @@ class RequestService
         ]);
 
         $newVersion->save();
+        
+        $this->notifyApprover(UserRole::Coordinator, $requestItem);
       });
     }
 
@@ -299,6 +317,10 @@ class RequestService
         
         return;
       }
+
+      Mail::to($requestItem->user)->send(new RequestUpdated($requestItem));
+
+      $this->notifyApprover(UserRole::Superior, $requestItem);
     }
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
@@ -362,6 +384,13 @@ class RequestService
 
           $file->delete();
 
+          Mail::to($requestItem->user)->send(new DelRequestApproved($requestItem));
+
+          $managers = User::where(['role' => UserRole::Manager])->get();
+
+          foreach($managers as $manager) {
+            Mail::to($manager)->send(new FileDeleted($requestItem));
+          }
           return;
         }
       
@@ -380,49 +409,67 @@ class RequestService
 
           $requestItem->update([
             "file_id" => $file->id,
+            "status" => "approved",
           ]);
+
+          Mail::to($requestItem->user)->send(new UplRequestApproved($requestItem));
         }
 
         /**
          * Updates the related file
          */
         if($requestItem->type === "rev") {
-          $relatedFile = $relatedVersion->load('file')->file;
+          $relatedFile = $relatedVersion->file;
 
           $relatedFile->update([
             'title' => $relatedVersion->file_title,
             'type' => $relatedVersion->file_type
           ]);
-        }
 
-        if($requestItem->type === "resub") {
-          /**
-           * Upsert
-           */
+          $requestItem->update([
+            "status" => "approved",
+          ]);
+          
+          Mail::to($requestItem->user)->send(new RevRequestApproved($requestItem));
         }
-
-        $requestItem->update([
-          "status" => "approved",
-        ]);
 
         $relatedVersion->update([
           "approved_date" => now(),
           "status" => "published"
-        ]);
+          ]);
+          
       });
     }
 
     public function approvalProcess(string $reqStatus, array $validated, RequestModel $requestItem, int $userId) {
 
-      $comment = $validated["comment"];
+      DB::transaction(function () use($reqStatus, $validated, $requestItem, $userId) {
+        $comment = $validated["comment"];
 
-      if($reqStatus === "managers_approval") {
-        $decision = $this->managersApprovalService
-          ->updateManagerDecision($validated, $userId);
+        if($reqStatus === "managers_approval") {
+          $decision = $this->managersApprovalService
+            ->updateManagerDecision($validated, $userId);
 
-        if($decision !== null) {
-          $this->finalizeRequest($requestItem, $decision);
+          if($decision !== null) {
+            $this->finalizeRequest($requestItem, $decision);
+          }
+
+          if($comment) {
+            Comment::create([
+              "content" => $comment,
+              "user_id" => $userId,
+              "request_id" => $validated['requestId']
+            ]);
+          }
+
+          Mail::to($requestItem->user)->send(new ManagerDecided($requestItem));
+
+          return;
         }
+
+        $requestItem->update([
+          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
+        ]);
 
         if($comment) {
           Comment::create([
@@ -432,39 +479,63 @@ class RequestService
           ]);
         }
 
-        return;
-      }
+        $newRequestStatus = $requestItem->status;
 
-      $requestItem->update([
-        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
-      ]);
+        if($newRequestStatus !== "denied" && $newRequestStatus !== "approved") {
+          Mail::to($requestItem->user)->send(new RequestUpdated($requestItem));
+        }
 
-      if($comment) {
-        Comment::create([
-          "content" => $comment,
-          "user_id" => $userId,
-          "request_id" => $validated['requestId']
-        ]);
-      }
+        if($newRequestStatus === "superior_approval") {
+          $this->notifyApprover(UserRole::Superior, $requestItem);
+        }
 
-      $reqStatus = $requestItem->status;
+        if($newRequestStatus === "managers_approval") {
+          $this->managersApprovalService->createManagerDecisions($requestItem->id);
 
-      if($reqStatus === "managers_approval") {
-        $this->managersApprovalService->createManagerDecisions($requestItem->id);
+          $this->notifyApprover(UserRole::Manager, $requestItem);
+          return;
+        }
 
-        return;
-      }
+        if($newRequestStatus === "denied") {
+          $this->finalizeRequest($requestItem, false);
+          Mail::to($requestItem->user)->send(new RequestDenied($requestItem));
+          
+          return; 
+        }
 
-      if($reqStatus === "denied") {
-        $this->finalizeRequest($requestItem, false);
+        if($newRequestStatus === "approved") {
+          $this->finalizeRequest($requestItem, true);
 
-        return; 
-      }
+          return;
+        }
+      });
 
-      if($reqStatus === "approved") {
-        $this->finalizeRequest($requestItem, true);
+    }
 
-        return;
+    public function notifyApprover(UserRole $approver, RequestModel $requestItem) {
+      $approvers = User::where(['role' => $approver])->get();
+
+      switch($approver) {
+        case UserRole::Coordinator:
+          foreach($approvers as $coordinator) {
+            Mail::to($coordinator)->send(new NotifyCoordinator($requestItem));
+          }
+          return;
+
+        case UserRole::Superior:
+          foreach($approvers as $superior) {
+            Mail::to($superior)->send(new NotifySuperior($requestItem));
+          }
+          return;
+
+        case UserRole::Manager:
+          foreach($approvers as $manager) {
+            Mail::to($manager)->send(new NotifyManagers($requestItem));
+          }
+          return;
+
+        default:
+          throw new InvalidArgumentException("Invalid approver: $approver");
       }
     }
 }
