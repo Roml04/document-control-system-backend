@@ -44,3 +44,24 @@ if(!function_exists('formatFileName')) {
       return strtolower("$userFirstName$userLastName") . "-" . now()->format('YmdHisu') . "." . $fileExtension;
   }
 }
+
+if(!function_exists('formatRequestType')) {
+  function formatRequestType(string $status) {
+    switch($status) {
+      case "upl":
+        return "upload";
+
+      case "rev":
+        return "revision";
+
+      case "resub":
+        return "resubmit";
+
+      case "del":
+        return "delete";
+
+      default:
+        throw new \InvalidArgumentException("Unknown status: $status");
+    }
+  }
+}

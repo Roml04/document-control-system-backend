@@ -1,0 +1,52 @@
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+    h1,
+    h2,
+    h3,
+    p {
+        font-family: 'Inter';
+        margin: 0;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+  </style>
+</head>
+<body style="background-color: #edf0f5">
+  <div style="gap: 1.5rem;">
+    <div style="background-color: black; padding: 1.5rem; margin-bottom: 1.5rem">
+      <h1 style="color: white">DCS Mailbox</h1>
+    </div>
+    <div style="padding-left: 2rem; padding-right: 2rem">
+      <div style="padding: 1.5rem; background-color: white">
+        <div style="border-bottom: 1px solid black; padding-bottom: 0.5rem;">
+          <h1>Request Denied</h1>
+        </div>
+        <div style="padding-top: 0.5rem;">
+          <p>Your document request has been denied during the approval process.</p>
+          <div style="padding-top: 8px; padding-bottom: 8px;">
+            <p style="padding: 0;"><span style="font-weight: 600;">Request</span>: {{ $requestTitle }}</p>
+            <p style="padding: 0;"><span style="font-weight: 600;">Request ID</span>: {{ $requestId }} </p>
+            <p style="padding: 0;"><span style="font-weight: 600;">Current Status</span>: {{ $requestStatus }}</p>
+            {{-- @if ($reason)
+              <p style="padding: 0;"><span style="font-weight: 600;">Reason</span>: {{ $comment }}</p>
+            @endif --}}
+            @if ($comment)
+              <div style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                <h3>Comment</h3>
+                <p style="border-left: 1px solid lightgray; padding-left: 1rem;"><span style="font-weight: 600">{{ $comment->user->first_name . " " . $comment->user->last_name }}</span>: {{ $comment->content }}</p>
+              </div>
+            @endif
+          </div>
+          <p>Please review the reason for the denial and take any necessary action regarding the request.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
