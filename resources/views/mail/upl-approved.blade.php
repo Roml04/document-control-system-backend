@@ -33,6 +33,7 @@
           <p>The document is now officially published and available in the system.</p>
           <div style="padding-top: 8px; padding-bottom: 8px;">
             <p style="padding: 0;"><span style="font-weight: 600;">Request</span>: {{ $requestTitle }}</p>
+            <p style="padding: 0;"><span style="font-weight: 600;">Uploaded File</span>: {{ $fileTitle }} </p>              
             <p style="padding: 0;"><span style="font-weight: 600;">Request ID</span>: {{ $requestId }} </p>
             <p style="padding: 0;"><span style="font-weight: 600;">Current Status</span>: {{ $requestStatus }}</p>
           </div>

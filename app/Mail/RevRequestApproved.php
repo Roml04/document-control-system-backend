@@ -40,6 +40,7 @@ class RevRequestApproved extends Mailable
             view: 'mail.rev-approved',
             with: [
               'requestTitle' => $this->request->title,
+              'fileTitle' => $this->request->version()->latest()->first()->file_title,
               'requestId' => $this->request->id,
               'requestStatus' => $this->request->status,
             ]
