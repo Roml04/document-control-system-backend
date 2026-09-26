@@ -32,6 +32,7 @@
           <p>Your delete request has completed the required approval process. The document has now been deleted from the system</p>
           <div style="padding-top: 8px; padding-bottom: 8px;">
             <p style="padding: 0;"><span style="font-weight: 600;">Request</span>: {{ $requestTitle }}</p>
+            <p style="padding: 0;"><span style="font-weight: 600;">Deleted Document</span>: {{ $fileTitle }} </p>              
             <p style="padding: 0;"><span style="font-weight: 600;">Request ID</span>: {{ $requestId }} </p>
             <p style="padding: 0;"><span style="font-weight: 600;">Current Status</span>: {{ $requestStatus }}</p>
           </div>
