@@ -454,8 +454,6 @@ class RequestService
             $this->finalizeRequest($requestItem, $decision);
           }
 
-          Mail::to($requestItem->user)->send(new ManagerDecided($requestItem));
-
           if($comment) {
             Comment::create([
               "content" => $comment,
@@ -463,6 +461,8 @@ class RequestService
               "request_id" => $validated['requestId']
             ]);
           }
+
+          Mail::to($requestItem->user)->send(new ManagerDecided($requestItem));
 
           return;
         }
