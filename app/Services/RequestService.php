@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
 use App\Mail\DelRequestApproved;
 use App\Mail\FileDeleted;
+use App\Mail\ManagerDecided;
 use App\Mail\NotifyCoordinator;
 use App\Mail\NotifyManagers;
 use App\Mail\NotifySuperior;
@@ -452,6 +453,8 @@ class RequestService
           if($decision !== null) {
             $this->finalizeRequest($requestItem, $decision);
           }
+
+          Mail::to($requestItem->user)->send(new ManagerDecided($requestItem));
 
           if($comment) {
             Comment::create([

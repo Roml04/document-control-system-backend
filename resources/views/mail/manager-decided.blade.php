@@ -26,16 +26,10 @@
     <div style="padding-left: 2rem; padding-right: 2rem; padding-bottom: 2rem;">
       <div style="padding: 1.5rem; background-color: white">
         <div style="border-bottom: 1px solid black; padding-bottom: 0.5rem;">
-          <h1>Status Changed</h1>
+          <h1>Manager Decision</h1>
         </div>
         <div style="padding-top: 0.5rem;">
-          @if ($requestStatus === "originator_edit")
-            <p>Your revision request has been approved and the document has now moved to the <span style="font-weight: 600;">Originator Edit</span> stage.</p>
-            <p>The document is now ready for you to make the necessary revisions before it proceeds to the next approval stage.</p>
-          @else
-            <p>Your {{ $requestType }} request has been approved at the current approval stage and has now moved forward to the next approval stage.</p>
-          @endif
-          
+          <p>A manager has submitted a decision regarding the following document request. The request remains in the Managers' Approval stage while the remaining managers complete their review.</p>
           <div style="padding-top: 8px; padding-bottom: 8px;">
             <p style="padding: 0;"><span style="font-weight: 600;">Request</span>: {{ $requestTitle }}</p>
             @switch($requestType)
@@ -55,12 +49,13 @@
                 @default
                     
             @endswitch
+            <p style="padding: 0;"><span style="font-weight: 600;">Request Type</span>: {{ $requestType }}</p>
             <p style="padding: 0;"><span style="font-weight: 600;">Request ID</span>: {{ $requestId }} </p>
-            <p style="padding: 0;"><span style="font-weight: 600;">Current Status</span>: {{ $requestStatus }}</p>
+            <p style="padding: 0;"><span style="font-weight: 600;">Manager</span>: {{ $submittedBy }}</p>
             @if ($comment)
               <div style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
                 <h3>Comment</h3>
-                <p style="border-left: 1px solid lightgray; padding-left: 1rem;"><span style="font-weight: 600">{{ $comment->user->first_name . " " . $comment->user->last_name }}</span>: {{ $comment->content }}</p>
+                <p style="border-left: 1px solid lightgray; padding-left: 1rem;"><span style="font-weight: 600">{{ $comment->content }}</p>
               </div>
             @endif
           </div>
