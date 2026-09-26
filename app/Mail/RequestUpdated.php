@@ -41,8 +41,10 @@ class RequestUpdated extends Mailable
             with: [
               'requestType' => formatRequestType($this->request->type),
               'requestTitle' => $this->request->title,
+              'fileTitle' => $this->request->version()->latest()->first()->file_title, 
               'requestId' => $this->request->id,
-              'requestStatus' => $this->request->status
+              'requestStatus' => $this->request->status,
+              'comment' => $this->request->comment()->latest()->first()
             ]
         );
     }

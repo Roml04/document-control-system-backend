@@ -30,7 +30,7 @@
         </div>
         <div style="padding-top: 0.5rem;">
           @if ($requestStatus === "originator_edit")
-            <p>Your revision request has been approved and the document has now moved to the Originator Edit stage.</p>
+            <p>Your revision request has been approved and the document has now moved to the <span style="font-weight: 600;">Originator Edit</span> stage.</p>
             <p>The document is now ready for you to make the necessary revisions before it proceeds to the next approval stage.</p>
           @else
             <p>Your {{ $requestType }} request has been approved at the current approval stage and has now moved forward to the next approval stage.</p>
@@ -38,8 +38,33 @@
           
           <div style="padding-top: 8px; padding-bottom: 8px;">
             <p style="padding: 0;"><span style="font-weight: 600;">Request</span>: {{ $requestTitle }}</p>
+            @switch($requestType)
+                @case("upload")                    
+                    <p style="padding: 0;"><span style="font-weight: 600;">Uploaded File</span>: {{ $fileTitle }} </p>              
+                    @break
+                @case("revision")
+                    <p style="padding: 0;"><span style="font-weight: 600;">Document Under Revision</span>: {{ $fileTitle }} </p>              
+                    @break
+                @case("resubmit")
+                    {{-- FOR FUTURE PURPOSES --}}
+                    @break
+                
+                @case("delete")    
+                    {{-- FOR FUTURE PURPOSES --}}
+                    @break
+                @default
+                    
+            @endswitch
+            @if ($fileTitle)
+            @endif
             <p style="padding: 0;"><span style="font-weight: 600;">Request ID</span>: {{ $requestId }} </p>
             <p style="padding: 0;"><span style="font-weight: 600;">Current Status</span>: {{ $requestStatus }}</p>
+            @if ($comment)
+              <div style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                <h3>Comment</h3>
+                <p style="border-left: 1px solid lightgray; padding-left: 1rem;"><span style="font-weight: 600">{{ $comment->user->first_name . " " . $comment->user->last_name }}</span>: {{ $comment->content }}</p>
+              </div>
+            @endif
           </div>
           @if ($requestStatus === "originator_edit")
             <p>Please review and edit the document as necessary, then submit your revisions to continue the approval process.</p>
