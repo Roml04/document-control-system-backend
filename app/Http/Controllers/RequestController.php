@@ -107,7 +107,7 @@ class RequestController extends Controller
           "fileId" => ["required", "exists:files,id"],
         ]);
 
-        $this->requestService->createDelRequest($validated, $request->user());
+        $this->requestService->createDelRequest($validated, $request->user()->id);
         break;
 
       default:

@@ -5,18 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Http\Resources\VersionResource;
 use App\Mail\NotifySuperior;
-use App\Mail\RequestUpdated;
-use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
 use Carbon\Carbon;
-use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 
 class VersionController extends Controller
 {
