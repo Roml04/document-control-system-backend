@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class FileDeleted extends Mailable
+class FileDeleted extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -40,6 +40,7 @@ class FileDeleted extends Mailable
 
         return new Content(
             view: 'mail.file-deleted',
+            text: 'text.file-deleted',
             with: [
               'requestTitle' => $this->request->title,
               'fileTitle' => $this->request->version()->latest()->first()->file_title,

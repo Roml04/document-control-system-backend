@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class DelRequestApproved extends Mailable
+class DelRequestApproved extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -38,6 +38,7 @@ class DelRequestApproved extends Mailable
     {
         return new Content(
             view: 'mail.del-approved',
+            text: 'text.del-approved',
             with: [
               'requestTitle' => $this->request->title,
               'fileTitle' => $this->request->version()->latest()->first()->file_title,

@@ -2,15 +2,19 @@
 
 namespace App\Mail;
 
+use App\Enums\UserRole;
 use App\Models\Request;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class ManagerDecided extends Mailable
+class ManagerDecided extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -18,7 +22,8 @@ class ManagerDecided extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-      public Request $request
+      public Request $request,
+      public int $userId
     ) {}
 
     /**
@@ -36,16 +41,21 @@ class ManagerDecided extends Mailable
      */
     public function content(): Content
     {
-        $comment = $this->request->comment()->latest()->first();
+        $comment = $this->request->comment()->whereHas('user', function ($query) { 
+          return $query->where(['id' => $this->userId]);
+        })->latest()->first();
+
+        $user = User::findOrFail($this->userId);
 
         return new Content(
             view: 'mail.manager-decided',
+            text: 'text.manager-decided',
             with: [
               'requestTitle' => $this->request->title,
               'fileTitle' => $this->request->version()->latest()->first()->file_title,
               'requestType' => formatRequestType($this->request->type),
               'requestId' => $this->request->id,
-              'submittedBy' => $comment->user->first_name . " " . $comment->user->last_name,
+              'manager' => $user->first_name . " " . $user->last_name,
               'comment' => $comment,
             ]
         );

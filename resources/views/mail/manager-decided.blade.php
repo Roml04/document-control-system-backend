@@ -29,7 +29,7 @@
           <h1>Manager Decision</h1>
         </div>
         <div style="padding-top: 0.5rem;">
-          <p>A manager has submitted a decision regarding the following document request. The request remains in the Managers' Approval stage while the remaining managers complete their review.</p>
+          <p>A manager has submitted a decision regarding the following document request.</p>
           <div style="padding-top: 8px; padding-bottom: 8px;">
             <p style="padding: 0;"><span style="font-weight: 600;">Request</span>: {{ $requestTitle }}</p>
             @switch($requestType)
@@ -51,7 +51,7 @@
             @endswitch
             <p style="padding: 0;"><span style="font-weight: 600;">Request Type</span>: {{ $requestType }}</p>
             <p style="padding: 0;"><span style="font-weight: 600;">Request ID</span>: {{ $requestId }} </p>
-            <p style="padding: 0;"><span style="font-weight: 600;">Manager</span>: {{ $submittedBy }}</p>
+            <p style="padding: 0;"><span style="font-weight: 600;">Manager</span>: {{ $manager }}</p>
             @if ($comment)
               <div style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
                 <h3>Comment</h3>
@@ -59,7 +59,7 @@
               </div>
             @endif
           </div>
-          <p>No further action is required from you at this time. You will receive another notification once there is an update to your request.</p>
+          <p>No further action is required from you at this time.</p>
         </div>
       </div>
     </div>

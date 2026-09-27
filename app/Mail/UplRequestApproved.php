@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class UplRequestApproved extends Mailable
+class UplRequestApproved extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -38,6 +38,7 @@ class UplRequestApproved extends Mailable
     {
         return new Content(
             view: 'mail.upl-approved',
+            text: 'text.upl-approved',
             with: [
               'requestTitle' => $this->request->title,
               'fileTitle' => $this->request->version()->latest()->first()->file_title,
