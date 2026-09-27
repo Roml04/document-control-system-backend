@@ -285,42 +285,44 @@ class RequestService
       $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
     }
 
-    public function updateDelRequest(array $validated, User $user) {
-      $requestItem = RequestModel::findOrFail($validated["requestId"]);
+    public function updateDelRequest(array $validated, int $userId) {
+      DB::transaction(function() use($validated, $userId) {
+        $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      $reqStatus = $requestItem->status;
+        $reqStatus = $requestItem->status;
 
-      $requestItem->update([
-        "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
-      ]);
-
-      $reqStatus = $requestItem->status;
-
-      $comment = $validated["comment"];
-
-      if($comment) {
-        Comment::create([
-          "content" => $comment,
-          "user_id" => $user->id,
-          "request_id" => $validated['requestId']
+        $requestItem->update([
+          "status" => $validated['isApproved'] ? getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited) : "denied",
         ]);
-      }
 
-      if($reqStatus === "denied") {
-        $this->finalizeRequest($requestItem, false);
-        
-        return;
-      }
+        $reqStatus = $requestItem->status;
 
-      if($reqStatus === "approved") {
-        $this->finalizeRequest($requestItem, true);
-        
-        return;
-      }
+        $comment = $validated["comment"];
 
-      Mail::to($requestItem->user)->send(new RequestUpdated($requestItem));
+        if($comment) {
+          Comment::create([
+            "content" => $comment,
+            "user_id" => $userId,
+            "request_id" => $validated['requestId']
+          ]);
+        }
 
-      $this->notifyApprover(UserRole::Superior, $requestItem);
+        if($reqStatus === "denied") {
+          $this->finalizeRequest($requestItem, false);
+          
+          return;
+        }
+
+        if($reqStatus === "approved") {
+          $this->finalizeRequest($requestItem, true);
+          
+          return;
+        }
+
+        Mail::to($requestItem->user)->send(new RequestUpdated($requestItem, $userId));
+
+        $this->notifyApprover(UserRole::Superior, $requestItem);
+      });
     }
 
     public function finalizeRequest(RequestModel $requestItem, bool $decision) { 
@@ -462,7 +464,7 @@ class RequestService
             ]);
           }
 
-          Mail::to($requestItem->user)->send(new ManagerDecided($requestItem));
+          Mail::to($requestItem->user)->send(new ManagerDecided($requestItem, $userId));
 
           return;
         }
@@ -482,7 +484,7 @@ class RequestService
         $newRequestStatus = $requestItem->status;
 
         if($newRequestStatus !== "denied" && $newRequestStatus !== "approved") {
-          Mail::to($requestItem->user)->send(new RequestUpdated($requestItem));
+          Mail::to($requestItem->user)->send(new RequestUpdated($requestItem, $userId));
         }
 
         if($newRequestStatus === "superior_approval") {
