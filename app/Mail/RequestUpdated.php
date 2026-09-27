@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RequestUpdated extends Mailable
+class RequestUpdated extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -18,7 +18,8 @@ class RequestUpdated extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-      public Request $request
+      public Request $request,
+      public int $userId
     ) {}
 
     /**
@@ -36,17 +37,22 @@ class RequestUpdated extends Mailable
      */
     public function content(): Content
     {
-        return new Content(
-            view: 'mail.request-updated',
-            with: [
-              'requestType' => formatRequestType($this->request->type),
-              'requestTitle' => $this->request->title,
-              'fileTitle' => $this->request->version()->latest()->first()->file_title, 
-              'requestId' => $this->request->id,
-              'requestStatus' => $this->request->status,
-              'comment' => $this->request->comment()->latest()->first()
-            ]
-        );
+      $comment = $this->request->comment()->whereHas('user', fn ($query) => $query->where(['id' => $this->userId]))
+        ->latest()
+        ->first();
+
+      return new Content(
+          view: 'mail.request-updated',
+          text: 'text.request-updated',
+          with: [
+            'requestType' => formatRequestType($this->request->type),
+            'requestTitle' => $this->request->title,
+            'fileTitle' => $this->request->version()->latest()->first()->file_title, 
+            'requestId' => $this->request->id,
+            'requestStatus' => $this->request->status,
+            'comment' => $comment
+          ]
+      );
     }
 
     /**

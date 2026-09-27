@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RequestDenied extends Mailable
+class RequestDenied extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -38,6 +38,7 @@ class RequestDenied extends Mailable
     {
         return new Content(
             view: 'mail.request-denied',
+            text: 'text.request-denied',
             with: [
               'requestTitle' => $this->request->title,
               'requestId' => $this->request->id,

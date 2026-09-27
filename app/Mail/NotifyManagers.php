@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class NotifyManagers extends Mailable
+class NotifyManagers extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -40,6 +40,7 @@ class NotifyManagers extends Mailable
         
         return new Content(
             view: 'mail.notify-managers',
+            text: 'text.notify-managers',
             with: [
               'requestTitle' => $this->request->title,
               'fileTitle' => $this->request->version()->latest()->first()->file_title,
