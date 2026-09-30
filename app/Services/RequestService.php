@@ -242,9 +242,7 @@ class RequestService
       });
     }
 
-    public function createDelRequest(array $validated, User $user) {
-      $userId = $user->id;
-
+    public function createDelRequest(array $validated, int $userId) {
       DB::transaction(function() use($validated, $userId) {
         $requestItem = RequestModel::create([
           "type" => "del",

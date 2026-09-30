@@ -49,7 +49,7 @@ class VersionController extends Controller
       return Storage::response($filePath);
     }
 
-    public function edit(Request $request) {
+    public function edit(Request $request, Version $version) {
 
       $validated = $request->validate([
         "id" => ["required", "exists:versions,id"],
@@ -63,11 +63,11 @@ class VersionController extends Controller
         "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
       ]);
 
-      DB::transaction(function () use($validated, $request) {
+      DB::transaction(function () use($validated, $request, $version) {
         $fileName = null;
         $filePath = null;
 
-        $version = Version::with('request')->findOrFail($validated["id"]);
+        $version->load(["request"]);
         $requestItem = $version->request;
         $requestingUser = $requestItem->user;
         $user = $version->request->load('user')->user;
@@ -104,8 +104,8 @@ class VersionController extends Controller
           "revision_details" => $validated["revisionDetails"],
           "revision_date" => now(),
           "approver" => $validated["approver"],
-          ...($fileName ? ["file_name" => $fileName] : "/"),
-          ...($filePath ? ["file_path" => $filePath] : "/"),
+          ...($fileName ? ["file_name" => $fileName] : []),
+          ...($filePath ? ["file_path" => $filePath] : []),
         ]);
 
         $version->request->update([
