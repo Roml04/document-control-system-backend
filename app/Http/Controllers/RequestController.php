@@ -77,7 +77,7 @@ class RequestController extends Controller
         ]);
 
 
-        $this->requestService->createRevRequest($validated, $request->user());
+        $this->requestService->createRevRequest($validated, $request->user()->id);
         break;
 
       case "resub":

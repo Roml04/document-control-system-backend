@@ -67,7 +67,7 @@ class RequestService
         }
 
         if($role === 'sysadmin') {
-          $requests = RequestModel::all();
+          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->get();
         }
 
         return $requests->sortByDesc("created_at")->values();
@@ -121,9 +121,8 @@ class RequestService
       });
     }
 
-    public function createRevRequest(array $validated, User $user) {
+    public function createRevRequest(array $validated, int $userId) {
       $version = Version::findOrFail($validated["latestVersionId"]);
-      $userId = $user->id;
 
       DB::transaction(function () use($validated, $version, $userId) {
         $requestItem = RequestModel::create([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminFileController;
+use App\Http\Controllers\Admin\AdminRequestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Controller;
@@ -61,6 +62,14 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
     Route::get("/{file}", "view");
     Route::patch("/{file}", "edit");
     Route::delete("/{file}", "delete");
+  });
+
+  Route::prefix('request')->controller(AdminRequestController::class)->group(function() {
+    Route::get("/", "index");
+    Route::post("/", "store");
+    Route::get("/{requestItem}", "view");
+    Route::patch("/{requestItem}", "edit");
+    Route::delete("/{requestItem}", "delete");
   });
 });
 
