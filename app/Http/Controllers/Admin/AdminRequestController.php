@@ -122,5 +122,14 @@ class AdminRequestController extends Controller
       ]);
     }
 
-    public function delete(RequestModel $requestItem) {}
+    public function delete(RequestModel $requestItem) {
+      return DB::transaction(function() use($requestItem) {
+        $requestItem->delete();
+
+        return response()->json([
+          'ok' => true,
+          'data' => [],
+        ]);
+      });
+    }
 }
