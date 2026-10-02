@@ -81,7 +81,7 @@ class AdminRequestController extends Controller
             "fileId" => ["required", "exists:files,id"],
           ]);
 
-          // $this->requestService->createDelRequest($validated, $request->user()->id);
+          $this->requestService->createDelRequest($validated, $validated["authorId"]);
           break;
 
         default:
