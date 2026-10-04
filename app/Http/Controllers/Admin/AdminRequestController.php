@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\RequestResource;
+use App\Http\Resources\UserResource;
 use App\Models\Request as RequestModel;
+use App\Models\User;
 use App\Services\RequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +17,19 @@ class AdminRequestController extends Controller
       protected RequestService $requestService,
     ) {}
     
-    public function index() {}
+    public function index(Request $request) {
+      $requestItem = RequestModel::query();
+
+      if($request->has("userid")) {
+        $requestItem->whereHas("user", fn($query) => $query->where(["id" => $request->userid]));
+      }
+
+      return response()->json([
+        "ok" => true,
+        "data" => RequestResource::collection($requestItem->get()),
+        "request" => $requestItem->get()
+      ]);
+    }
 
     public function store(Request $request) {
 
@@ -35,10 +50,13 @@ class AdminRequestController extends Controller
             "fileId" => ["nullable", "exists:files,id"],
             "fileTitle" => ["required","string"],
             "fileType" => ["required", "in:document,checklist,form"],
+            "authorId" => ["required", "exists:users,id"],
             "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
           ]);
 
-          // $this->requestService->createUplRequest($validated, $request->user(), $request->file('file'));
+          $user = User::findOrFail($validated["authorId"]);
+
+          $this->requestService->createUplRequest($validated, $user, $request->file('file'));
           break;
 
         case "rev":
@@ -66,10 +84,11 @@ class AdminRequestController extends Controller
             "revisionNumber" => ["required", "string"],
             "revisionDetails" => ["required", "string"],
             "approver" => ["required", "string"],
+            "authorId" => ["required", "exists:users,id"],
             "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
           ]);
 
-          // $this->requestService->createResubRequest($validated, $request->user(), $request->file("file"));
+          // $this->requestService->createResubRequest($validated, $validated["authorId], $request->file("file"));
           break;
 
         case "del":
