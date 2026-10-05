@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminFileController;
 use App\Http\Controllers\Admin\AdminRequestController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminVersionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Controller;
@@ -79,6 +80,10 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
     Route::patch("/{user}", "edit");
     Route::delete("/{user}", "delete");
     Route::patch("/{user}/resetpassword", "resetPassword");
+  });
+
+  Route::prefix('version')->controller(AdminVersionController::class)->group(function() {
+    Route::get("/", "index");
   });
 });
 
