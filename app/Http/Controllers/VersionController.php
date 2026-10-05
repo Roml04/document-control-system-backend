@@ -2,16 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use App\Http\Resources\VersionResource;
-use App\Mail\NotifySuperior;
-use App\Models\User;
 use App\Models\Version;
 use App\Services\VersionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class VersionController extends Controller

@@ -56,4 +56,13 @@ class AdminVersionController extends Controller
         "data" => []
       ]);
     }
+
+    public function delete(Version $version) {
+      $version->delete();
+
+      return response()->json([
+        "ok" => true,
+        "message" => "Version deleted successfully"
+      ]);
+    }
 }
