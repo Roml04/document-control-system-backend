@@ -270,16 +270,16 @@ class RequestService
       });
     }
 
-    public function updateUplRequest(array $validated, User $user) {
+    public function updateUplRequest(array $validated, int $userId) {
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $userId);
     }
 
-    public function updateRevRequest(array $validated, User $user) {
+    public function updateRevRequest(array $validated, int $userId) {
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $userId);
     }
 
     public function updateDelRequest(array $validated, int $userId) {
