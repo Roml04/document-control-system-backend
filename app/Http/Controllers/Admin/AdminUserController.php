@@ -14,6 +14,29 @@ class AdminUserController extends Controller
       return new UserResource($user);
     }
 
+    public function store(Request $request) {
+      $validated = $request->validate([
+        'firstName' => ['required', 'string'],
+        'lastName' => ['required', 'string'],
+        'email' => ['required', 'email'],
+        'password' => ['required', 'string', 'min:8'],
+        'role' => ['required', 'in:guest,originator,coordinator,superior,manager'],
+      ]);
+
+      User::create([
+        'first_name' => $validated["firstName"],
+        'last_name' => $validated["lastName"],
+        'email' => $validated["email"],
+        'password' => Hash::make($validated["password"]),
+        'role' => $validated['role'],
+      ]);
+
+      return response()->json([
+        'ok' => true,
+        'message' => 'User created successfully'
+      ]);
+    }
+
     public function edit(User $user, Request $request) {
       $validated = $request->validate([
         'email' => ['required', 'email'],
