@@ -35,6 +35,15 @@ class AdminUserController extends Controller
       ]);
     }
 
+    public function delete(User $user) {
+      $user->delete();
+
+      return response()->json([
+        "ok" => true,
+        "message" => "User deleted"
+      ]);
+    }
+
     public function resetPassword(User $user, Request $request) {
       $validated = $request->validate([
         'password' => ['required', 'string', 'min:8', 'confirmed'],
