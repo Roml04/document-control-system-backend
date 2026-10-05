@@ -84,6 +84,8 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
 
   Route::prefix('version')->controller(AdminVersionController::class)->group(function() {
     Route::get("/", "index");
+    Route::get("/{version}", "view");
+    Route::patch("/{version}", "edit");
   });
 });
 
