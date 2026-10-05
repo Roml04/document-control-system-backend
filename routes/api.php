@@ -74,6 +74,7 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
   });
 
   Route::prefix('user')->controller(AdminUserController::class)->group(function() {
+    Route::post("/", "store");
     Route::get("/{user}", "view");
     Route::patch("/{user}", "edit");
     Route::delete("/{user}", "delete");
