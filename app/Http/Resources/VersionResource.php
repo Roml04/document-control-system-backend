@@ -37,6 +37,16 @@ class VersionResource extends JsonResource
            */
           "createdAt" => $this->created_at ? $this->created_at->format('Y-m-d h:iA') : null,
           "updatedAt" => $this->updated_at ? $this->updated_at->format('Y-m-d h:iA') : null,
+
+          "request" => $this->when($this->request !== null, fn() => [
+            "id" => $this->request->id,
+            "title" => $this->request->title,
+            "status" => $this->request->status,
+            "user" => $this->request->when($this->request->user !== null, fn() => [
+              "firstName" => $this->request->user->first_name,
+              "lastName" => $this->request->user->last_name,
+            ]),
+          ])
         ];
     }
 }
