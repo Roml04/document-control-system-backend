@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminFileController;
+use App\Http\Controllers\Admin\AdminRequestController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminVersionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Controller;
@@ -51,6 +55,39 @@ Route::middleware('auth:sanctum')->group(function() {
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
   return response()->json($request->user());
+});
+
+Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function () {
+  Route::prefix('file')->controller(AdminFileController::class)->group(function() {
+    Route::get("/", "index");
+    Route::post("/", "store");
+    Route::get("/{file}", "view");
+    Route::patch("/{file}", "edit");
+    Route::delete("/{file}", "delete");
+  });
+
+  Route::prefix('request')->controller(AdminRequestController::class)->group(function() {
+    Route::get("/", "index");
+    Route::post("/", "store");
+    Route::get("/{requestItem}", "view");
+    Route::patch("/{requestItem}", "edit");
+    Route::delete("/{requestItem}", "delete");
+  });
+
+  Route::prefix('user')->controller(AdminUserController::class)->group(function() {
+    Route::post("/", "store");
+    Route::get("/{user}", "view");
+    Route::patch("/{user}", "edit");
+    Route::delete("/{user}", "delete");
+    Route::patch("/{user}/resetpassword", "resetPassword");
+  });
+
+  Route::prefix('version')->controller(AdminVersionController::class)->group(function() {
+    Route::get("/", "index");
+    Route::get("/{version}", "view");
+    Route::patch("/{version}", "edit");
+    Route::delete("/{version}", "delete");
+  });
 });
 
 Route::controller(OnlyOfficeController::class)->group(function() {

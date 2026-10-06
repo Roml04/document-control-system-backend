@@ -1,26 +1,22 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Admin;
 
-use App\Enums\UserRole;
-use App\Mail\NotifySuperior;
-use App\Models\User;
 use App\Models\Version;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Enums\UserRole;
+use App\Mail\NotifySuperior;
+use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
-class VersionService
+class AdminVersionService
 {
     /**
      * Create a new class instance.
      */
     public function __construct() {}
-
-    public function createVersion() {
-      
-    }
 
     public function editVersion(array $validated, Request $request, Version $version) {
       DB::transaction(function () use($validated, $request, $version) {
@@ -30,7 +26,6 @@ class VersionService
         $version->load(["request"]);
         $requestItem = $version->request;
         $user = $requestItem->user;
-        // $user = $version->request->load('user')->user;
 
         $uploadedFile = $request->file("file");
         $parentFileName = $version->file_name;
@@ -62,14 +57,13 @@ class VersionService
           "department" => $validated["department"],
           "revision_number" => $validated["revisionNumber"],
           "revision_details" => $validated["revisionDetails"],
-          "revision_date" => now(),
+          "upload_date" => $validated["uploadDate"],
+          "revision_date" => $validated["revisionDate"] ?? now(),
           "approver" => $validated["approver"],
+          "approved_date" => $validated["approvedDate"] ?? now(),
+          "status" => $validated["status"],
           ...($fileName ? ["file_name" => $fileName] : []),
           ...($filePath ? ["file_path" => $filePath] : []),
-        ]);
-
-        $version->request->update([
-          "status" => getNextStatus("rev", $version->request->status, $version->request->was_edited),
         ]);
 
         /**

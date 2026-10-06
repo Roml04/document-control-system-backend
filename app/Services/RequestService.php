@@ -67,7 +67,7 @@ class RequestService
         }
 
         if($role === 'sysadmin') {
-          $requests = RequestModel::all();
+          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->get();
         }
 
         return $requests->sortByDesc("created_at")->values();
@@ -121,9 +121,8 @@ class RequestService
       });
     }
 
-    public function createRevRequest(array $validated, User $user) {
+    public function createRevRequest(array $validated, int $userId) {
       $version = Version::findOrFail($validated["latestVersionId"]);
-      $userId = $user->id;
 
       DB::transaction(function () use($validated, $version, $userId) {
         $requestItem = RequestModel::create([
@@ -136,7 +135,7 @@ class RequestService
         ]);
 
         /**
-         * NOTE: Use replicate here
+         * DEV-NOTE: Use replicate here
          */
         Version::create([
           "file_title" => $version->file_title,
@@ -242,9 +241,7 @@ class RequestService
       });
     }
 
-    public function createDelRequest(array $validated, User $user) {
-      $userId = $user->id;
-
+    public function createDelRequest(array $validated, int $userId) {
       DB::transaction(function() use($validated, $userId) {
         $requestItem = RequestModel::create([
           "type" => "del",
@@ -273,16 +270,16 @@ class RequestService
       });
     }
 
-    public function updateUplRequest(array $validated, User $user) {
+    public function updateUplRequest(array $validated, int $userId) {
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $userId);
     }
 
-    public function updateRevRequest(array $validated, User $user) {
+    public function updateRevRequest(array $validated, int $userId) {
       $requestItem = RequestModel::findOrFail($validated["requestId"]);
 
-      $this->approvalProcess($requestItem->status, $validated, $requestItem, $user->id);
+      $this->approvalProcess($requestItem->status, $validated, $requestItem, $userId);
     }
 
     public function updateDelRequest(array $validated, int $userId) {

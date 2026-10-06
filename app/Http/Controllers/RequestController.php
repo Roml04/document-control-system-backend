@@ -2,14 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use App\Http\Resources\RequestResource;
-use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
-use App\Models\Version;
 use App\Services\ManagersApprovalService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Services\RequestService;
 
 class RequestController extends Controller
@@ -77,7 +73,7 @@ class RequestController extends Controller
         ]);
 
 
-        $this->requestService->createRevRequest($validated, $request->user());
+        $this->requestService->createRevRequest($validated, $request->user()->id);
         break;
 
       case "resub":
@@ -127,21 +123,21 @@ class RequestController extends Controller
       "comment" => ["nullable", "string"]
     ]);
 
-    $user = $request->user();
+    $userId = $request->user()->id;
 
     $reqType = RequestModel::findOrFail($validated['requestId'])->type;
 
     switch($reqType) {
       case "upl":
-        $this->requestService->updateUplRequest($validated, $user);
+        $this->requestService->updateUplRequest($validated, $userId);
         break;
       
       case "rev":
-        $this->requestService->updateRevRequest($validated, $user);
+        $this->requestService->updateRevRequest($validated, $userId);
         break;
       
       case "del":
-        $this->requestService->updateDelRequest($validated, $user);
+        $this->requestService->updateDelRequest($validated, $userId);
         break;
       
       default: 
