@@ -64,4 +64,8 @@ class User extends Authenticatable
     public function managersApproval() {
       return $this->hasMany(ManagersApproval::class);
     }
+
+    public function assignedVersion() {
+      return $this->hasMany(Version::class, "approver_id", "id");
+    }
 }

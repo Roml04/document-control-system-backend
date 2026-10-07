@@ -21,7 +21,9 @@ return new class extends Migration
             $table->string('revision_details')->nullable();
             $table->dateTime('upload_date');
             $table->dateTime('revision_date')->nullable();
-            $table->string('approver');
+            // $table->string('approver');
+            $table->unsignedBigInteger('approved_id');
+            $table->foreign('approved_id')->references('id')->on('users');
             $table->dateTime('approved_date')->nullable();
             $table->enum('status', ['pending', 'published', 'rejected']);
             $table->string('file_name');

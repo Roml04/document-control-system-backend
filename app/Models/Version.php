@@ -18,7 +18,8 @@ class Version extends Model
         'revision_details',
         'upload_date',
         'revision_date',
-        'approver',
+        'approver_id',
+        // 'approver',
         'approved_date',
         'status',
         'file_name',
@@ -38,5 +39,9 @@ class Version extends Model
     public function request()
     {
         return $this->belongsTo(Request::class);
+    }
+
+    public function approver() {
+        return $this->belongsTo(User::class, 'approver_id', 'user_id');
     }
 }
