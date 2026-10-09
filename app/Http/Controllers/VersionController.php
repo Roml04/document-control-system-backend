@@ -13,11 +13,24 @@ class VersionController extends Controller
 {
     public function __construct(public VersionService $versionService) {}
     
-    public function index() {
+    public function index(Request $request) {
+      $versions = Version::query();
+
+      /**
+       * DEV-NOTE: Extract query parameters goes here
+       */
+
       return response()->json([
-        "message" => "files"
+        "ok" => true,
+        "data" => VersionResource::collection($versions->get())
       ]);
     }
+
+    // public function index() {
+    //   return response()->json([
+    //     "message" => "files"
+    //   ]);
+    // }
 
     public function store() {
       return response()->json([
