@@ -35,7 +35,7 @@ Route::middleware('auth:sanctum')->group(function() {
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
-    Route::post("/", "index");
+    Route::get("/", "index");
     Route::get("/{version}", "view");
     Route::patch("/{version}", "edit");
     Route::get("/{version}/file", "download");

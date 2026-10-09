@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RequestResource;
-use App\Http\Resources\UserResource;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Services\RequestService;
