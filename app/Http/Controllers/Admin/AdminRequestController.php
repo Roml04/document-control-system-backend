@@ -46,7 +46,7 @@ class AdminRequestController extends Controller
             "department" => ["required", "string"],
             "revisionNumber" => ["required", "string"],
             "revisionDetails" => ["required", "string"],
-            "approver" => ["required", "string"],
+            "approverId" => ["required", "exists:users,id"],
             "fileId" => ["nullable", "exists:files,id"],
             "fileTitle" => ["required","string"],
             "fileType" => ["required", "in:document,checklist,form"],
@@ -83,7 +83,7 @@ class AdminRequestController extends Controller
             "department" => ["required", "string"],
             "revisionNumber" => ["required", "string"],
             "revisionDetails" => ["required", "string"],
-            "approver" => ["required", "string"],
+            "approverId" => ["required", "exists:users,id"],
             "authorId" => ["required", "exists:users,id"],
             "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
           ]);

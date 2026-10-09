@@ -32,7 +32,7 @@ class AdminFileController extends Controller
           "revisionDetails" => ["required", "string"],
           "uploadDate" => ["nullable", "date"],
           "revisionDate" => ["nullable", "date"],
-          "approver" => ["required", "string"],
+          "approverId" => ["required", "exists:users,id"],
           "approvedDate" => ["nullable", "date"],
           "file" => ["required", "file", "mimes:docx,pdf,xlsx,pptx"]
         ]);
@@ -57,7 +57,7 @@ class AdminFileController extends Controller
           "revision_details" => $validated["revisionDetails"],
           "upload_date" => $validated["uploadDate"] ?? now(),
           "revision_date" => $validated["revisionDate"] ?? now(),
-          "approver" => $validated["approver"],
+          "approver_id" => $validated["approverId"],
           "approved_date" => $validated["approvedDate"] ?? now(),
           "status" => "published",
           "file_name" => $fileName,
