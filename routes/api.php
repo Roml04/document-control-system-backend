@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminVersionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\OnlyOfficeController;
 use App\Http\Controllers\RequestController;
