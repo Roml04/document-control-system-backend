@@ -40,34 +40,33 @@ class RequestService
 
       $user = $request->user();
 
+
       $forApprovals = DB::transaction(function () use($user) {
-        $requests = [];
+        // $requests = [];
+        $requests = RequestModel::query()->with(["version", "user:id,first_name,last_name,role"]);
 
         $role = $user->role;
 
-        /**
-         * NOTE: use enum here
-         */
         if($role === 'originator') {
-          return $requests;
+          return [];
         }
 
         if($role === 'coordinator') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "coordinator_approval")->get();
+          $requests = $requests->where("status", "coordinator_approval")->get();
         }
 
         if($role === 'superior') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "superior_approval")->get();
+          $requests = $requests->where("status", "superior_approval")->whereHas("version", fn($query) => $query->where("approver_id", $user->id))->get();
         }
 
         if($role === 'manager') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
+          $requests = $requests->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
             $query->where(['manager_id' => $user->id, 'decision' => 'pending']);
           })->get();
         }
 
         if($role === 'sysadmin') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->get();
+          $requests = $requests->get();
         }
 
         return $requests->sortByDesc("created_at")->values();
@@ -109,7 +108,7 @@ class RequestService
           "revision_details" => $validatedWithFile["revisionDetails"],
           "upload_date" => now(),
           "revision_date" => now(),
-          "approver" => $validatedWithFile["approver"],
+          "approver_id" => $validatedWithFile["approverId"],
           "status" => "pending",
           "file_name" => $validatedWithFile["fileName"],
           "file_path" => $validatedWithFile["filePath"], 
@@ -122,9 +121,10 @@ class RequestService
     }
 
     public function createRevRequest(array $validated, int $userId) {
-      $version = Version::findOrFail($validated["latestVersionId"]);
 
-      DB::transaction(function () use($validated, $version, $userId) {
+      DB::transaction(function () use($validated, $userId) {
+        $version = Version::findOrFail($validated["latestVersionId"]);
+
         $requestItem = RequestModel::create([
           "type" => 'rev',
           "title" => $validated['title'],
@@ -134,25 +134,12 @@ class RequestService
           "file_id" => $version->file->id
         ]);
 
-        /**
-         * DEV-NOTE: Use replicate here
-         */
-        Version::create([
-          "file_title" => $version->file_title,
-          "file_type" => $version->file_type,
-          "originator" => $version->originator,
-          "department" => $version->department,
-          "revision_number" => $version->revision_number,
-          "revision_details" => $version->revision_details,
-          "upload_date" => $version->upload_date,
-          "revision_date" => $version->revision_date,
-          "approver" => $version->approver,
+        $newVersion = $version->replicate()->fill([
           "status" => "pending",
-          "file_name" => $version->file_name,
-          "file_path" => $version->file_path,
-          "file_id" => $version->file_id,
           "request_id" => $requestItem->id,
         ]);
+
+        $newVersion->save();
         
         $this->notifyApprover(UserRole::Coordinator, $requestItem);
       });
@@ -214,7 +201,7 @@ class RequestService
           ...($validated["department"] ? ["department" => $validated["department"]] : []),
           ...($validated["revisionNumber"] ? ["revision_number" => $validated["revisionNumber"]] : []),
           ...($validated["revisionDetails"] ? ["revision_details" => $validated["revisionDetails"]] : []),
-          ...($validated["approver"] ? ["approver" => $validated["approver"]] : []),
+          ...($validated["approverId"] ? ["approver_id" => $validated["approverId"]] : []),
           "approved_date" => null,
           "status" => "pending",
           ...($fileName ? ["file_name" => $fileName] : []),
