@@ -30,7 +30,7 @@ class RequestController extends Controller
 
     $request->load([
       'user:id,first_name,last_name,role',
-      'version:id,file_title,file_type,originator,department,revision_number,revision_details,upload_date,revision_date,approver,approved_date,file_name,file_path,file_id,request_id', 
+      'version:id,file_title,file_type,originator,department,revision_number,revision_details,upload_date,revision_date,approver_id,approved_date,file_name,file_path,file_id,request_id', 
       'comment:id,content,user_id,request_id,created_at,updated_at'
     ]);
 
@@ -55,7 +55,7 @@ class RequestController extends Controller
           "department" => ["required", "string"],
           "revisionNumber" => ["required", "string"],
           "revisionDetails" => ["required", "string"],
-          "approver" => ["required", "string"],
+          "approverId" => ["required", "exists:users,id"],
           "fileId" => ["nullable", "exists:files,id"],
           "fileTitle" => ["required","string"],
           "fileType" => ["required", "in:document,checklist,form"],
@@ -72,7 +72,6 @@ class RequestController extends Controller
           "latestVersionId" => ["required", "exists:versions,id"],
         ]);
 
-
         $this->requestService->createRevRequest($validated, $request->user()->id);
         break;
 
@@ -88,7 +87,7 @@ class RequestController extends Controller
           "department" => ["required", "string"],
           "revisionNumber" => ["required", "string"],
           "revisionDetails" => ["required", "string"],
-          "approver" => ["required", "string"],
+          "approver" => ["required", "exists:users,id"],
           "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
         ]);
 
