@@ -42,6 +42,6 @@ class Version extends Model
     }
 
     public function approver() {
-        return $this->belongsTo(User::class, 'approver_id', 'user_id');
+        return $this->belongsTo(User::class, 'approver_id', 'id');
     }
 }
