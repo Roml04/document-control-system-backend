@@ -18,14 +18,14 @@ class ManagersApprovalService
      * for each manager.
      */
     public function createManagerDecisions(int $requestId) {
-      $managerIds = User::where('role', UserRole::Manager)->pluck('id');
+      $managerIds = User::whereIn('role', ["manager", "sysadmin"])->pluck('id');
 
       DB::transaction(function() use($managerIds, $requestId) {
         foreach($managerIds as $managerId) {
           ManagersApproval::create([
             "manager_id" => $managerId,
             "request_id" => $requestId,
-            "decision" => ManagersApprovalDecision::Pending,
+            "decision" => "pending",
             "decided_at" => null
           ]);
         }
