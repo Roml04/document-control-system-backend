@@ -48,7 +48,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            // 'role' => UserRole::class,
         ];
     }
 
@@ -62,7 +61,7 @@ class User extends Authenticatable
     }
 
     public function managersApproval() {
-      return $this->hasMany(ManagersApproval::class);
+      return $this->hasMany(ManagersApproval::class, "manager_id");
     }
 
     public function assignedVersion() {

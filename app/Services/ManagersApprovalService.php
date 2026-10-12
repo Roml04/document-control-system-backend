@@ -18,7 +18,7 @@ class ManagersApprovalService
      * for each manager.
      */
     public function createManagerDecisions(int $requestId) {
-      $managerIds = User::whereIn('role', ["manager", "sysadmin"])->pluck('id');
+      $managerIds = User::where('role', "manager")->pluck('id');
 
       DB::transaction(function() use($managerIds, $requestId) {
         foreach($managerIds as $managerId) {
