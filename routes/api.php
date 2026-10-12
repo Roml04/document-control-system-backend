@@ -31,7 +31,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get("/", 'index');
     Route::post('/', 'store');
     Route::get("/{request}", "view");
-    Route::patch("/{request}", 'update');
+    Route::patch("/{request}", 'edit');
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
@@ -71,6 +71,8 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
     Route::get("/{requestItem}", "view");
     Route::patch("/{requestItem}", "edit");
     Route::delete("/{requestItem}", "delete");
+
+    Route::patch("/{requestItem}/approval", "review");
   });
 
   Route::prefix('user')->controller(AdminUserController::class)->group(function() {

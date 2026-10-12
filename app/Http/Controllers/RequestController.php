@@ -115,7 +115,7 @@ class RequestController extends Controller
     ]);
   }
 
-  public function update(Request $request) {
+  public function edit(Request $request) {
     $validated = $request->validate([
       "isApproved" => ["required", "bool"],
       "requestId" => ["required", "exists:requests,id"],
