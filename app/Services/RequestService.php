@@ -19,6 +19,7 @@ use App\Models\File;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
+use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -509,9 +510,8 @@ class RequestService
           return;
 
         case UserRole::Superior:
-          foreach($approvers as $superior) {
-            Mail::to($superior)->send(new NotifySuperior($requestItem));
-          }
+          $superior = User::findOrFail($requestItem->version()->latest()->first()->approver_id);
+          Mail::to($superior)->send(new NotifySuperior($requestItem));
           return;
 
         case UserRole::Manager:
