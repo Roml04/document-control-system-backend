@@ -23,15 +23,11 @@ Route::middleware('auth:sanctum')->group(function() {
 
   Route::get('/logout', [AuthController::class, 'logout']);
 
-  Route::prefix('user')->controller(UserController::class)->group(function() {
-    Route::get('/', 'index');
-  });
-
   Route::prefix('request')->controller(RequestController::class)->group(function() {
     Route::get("/", 'index');
     Route::post('/', 'store');
     Route::get("/{request}", "view");
-    Route::patch("/{request}", 'edit');
+    Route::patch("/{requestItem}/approval", 'review');
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
@@ -76,6 +72,7 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
   });
 
   Route::prefix('user')->controller(AdminUserController::class)->group(function() {
+    Route::get('/', 'index');
     Route::post("/", "store");
     Route::get("/{user}", "view");
     Route::patch("/{user}", "edit");
