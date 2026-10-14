@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Policies\VersionPolicy;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[UsePolicy(VersionPolicy::class)]
 class Version extends Model
 {
     use HasFactory;
@@ -19,7 +22,6 @@ class Version extends Model
         'upload_date',
         'revision_date',
         'approver_id',
-        // 'approver',
         'approved_date',
         'status',
         'file_name',
