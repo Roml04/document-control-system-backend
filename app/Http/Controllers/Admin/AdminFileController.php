@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FileResource;
 use App\Models\File;
 use App\Models\Version;
 use Illuminate\Http\Request;
@@ -12,17 +13,31 @@ use Illuminate\Support\Facades\Storage;
 class AdminFileController extends Controller
 {
     public function index() {
+      $this->authorize("adminViewAny", File::class);
+
       $files = File::all();
 
-      return response()->json($files);
+      return response()->json([
+        "ok" => true,
+        "data" => FileResource::collection($files),
+        "message" => "Successfully indexed files"
+      ]);
     }
 
     public function view(File $file) {
-      return response()->json($file);
+      $this->authorize("view", File::class);
+
+      return response()->json([
+        "ok" => true,
+        "data" => new FileResource($file),
+        "message" => "Successfully retrieved file"
+      ]);
     }
 
     public function store(Request $request) {
-      return DB::transaction(function() use($request) {
+      $this->authorize("create", File::class);
+
+      DB::transaction(function() use($request) {
         $validated = $request->validate([
           "fileTitle" => ["required", "string"],
           "fileType" => ["required", "in:document,checklist,form"],
@@ -65,16 +80,19 @@ class AdminFileController extends Controller
           "file_id" => $file->id,
           "request_id" => null,
         ]);
-
-        return response()->json([
-          "ok" => true,
-          "message" => "File created successfully"
-        ]);
       });
+
+      return response()->json([
+        "ok" => true,
+        "data" => null,
+        "message" => "Successfully created file"
+      ]);
     }
 
     public function edit(Request $request, File $file) {
-      return DB::transaction(function() use($request, $file) {
+      $this->authorize("update", $file);
+
+      DB::transaction(function() use($request, $file) {
         $validated = $request->validate([
           "fileTitle" => ["required", "string"],
           "fileType" => ["required", "in:document,checklist,form"],
@@ -137,19 +155,23 @@ class AdminFileController extends Controller
           ...($fileName ? ["file_name" => $fileName] : []),
           ...($filePath ? ["file_path" => $filePath] : []),
         ]);
-
-        return response()->json([
-          "ok" => true,
-          "message" => "Successfully edited file $file->id"
-        ]);
       });
+      
+      return response()->json([
+        "ok" => true,
+        "data" => null,
+        "message" => "Successfully updated file"
+      ]);
     }
 
     public function delete(File $file) {
+      $this->authorize("delete", $file);
+
       $file->delete();
 
       return response()->json([
         "ok" => true,
+        "data" => null,
         "message" => "Successfully deleted file"
       ]);
     }
