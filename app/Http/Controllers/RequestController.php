@@ -16,17 +16,17 @@ class RequestController extends Controller
   ) {}
 
   public function index(Request $request) {
-
-    $user = $request->user();
+    $this->authorize("viewAny", RequestModel::class);
 
     return response()->json([
       "ok" => true,
       "data" => $this->requestService->showRequests($request),
-      "message" => "Successfully retrieved requests from $user->first_name $user->last_name [$user->id]"
+      "message" => "Successfully indexed requests"
     ]);
   }
 
   public function view(RequestModel $request) {
+    $this->authorize("view", $request);
 
     $request->load([
       'user:id,first_name,last_name,role',
@@ -36,11 +36,13 @@ class RequestController extends Controller
 
     return response()->json([
       "ok" => true,
-      "data" => new RequestResource($request)
+      "data" => new RequestResource($request),
+      "message" => "Successfully retrieved request"
     ]);
   }
   
   public function store(Request $request) {
+    $this->authorize("create", RequestModel::class);
 
     $type = $request->validate([
       "type" => ["required", "in:upl,rev,resub,del"],
@@ -111,11 +113,13 @@ class RequestController extends Controller
     return response()->json([
       "ok" => true,
       "data" => null,
-      "message" => "Request submitted successfuly"
+      "message" => "Successfully created request"
     ]);
   }
 
-  public function edit(Request $request) {
+  public function review(Request $request, RequestModel $requestItem) {
+    $this->authorize("review", $requestItem);
+
     $validated = $request->validate([
       "isApproved" => ["required", "bool"],
       "requestId" => ["required", "exists:requests,id"],
@@ -146,7 +150,7 @@ class RequestController extends Controller
     return response()->json([
       "ok" => true,
       "data" => null,
-      "message" => "Successfully updated request"
+      "message" => "Successfully reviewed request"
     ]);
   }
 }

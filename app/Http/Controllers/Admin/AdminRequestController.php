@@ -25,6 +25,8 @@ class AdminRequestController extends Controller
     ) {}
     
     public function index(Request $request) {
+      $this->authorize("adminViewAny", RequestModel::class);
+
       $requestItem = RequestModel::query();
 
       if($request->has("userid")) {
@@ -34,11 +36,12 @@ class AdminRequestController extends Controller
       return response()->json([
         "ok" => true,
         "data" => RequestResource::collection($requestItem->get()),
-        "request" => $requestItem->get()
+        "message" => "Successfully indexed requests"
       ]);
     }
 
     public function store(Request $request) {
+      $this->authorize("adminCreate", RequestModel::class);
 
       $type = $request->validate([
         "type" => ["required", "in:upl,rev,resub,del"],
@@ -95,7 +98,7 @@ class AdminRequestController extends Controller
             "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
           ]);
 
-          // $this->requestService->createResubRequest($validated, $validated["authorId], $request->file("file"));
+          $this->requestService->createResubRequest($validated, $validated["authorId"], $request->file("file"));
           break;
 
         case "del":
@@ -116,13 +119,13 @@ class AdminRequestController extends Controller
       return response()->json([
         "ok" => true,
         "data" => null,
-        "message" => "Request submitted successfuly"
+        "message" => "Successfully created request"
       ]);
     }
-    
-    public function view(RequestModel $requestItem) {}
-    
+        
     public function edit(RequestModel $requestItem, Request $request) {
+      $this->authorize("update", $requestItem);
+
       $validated = $request->validate([
         "title" => ["required", "string"],
         "reason" => ["required", "string"],
@@ -149,14 +152,14 @@ class AdminRequestController extends Controller
     
       return response()->json([
         "ok" => true,
-        "data" => [
-          "validated" => $validated,
-          "request" => $requestItem
-        ]
+        "data" => null,
+        "message" => "Successfully updated request"
       ]);
     }
 
     public function review(RequestModel $requestItem, Request $request) {
+      $this->authorize("adminReview", RequestModel::class);
+
       $validated = $request->validate([
         "isApproved" => ["required", "bool"],
         "requestId" => ["required", "exists:requests,id"],
@@ -212,18 +215,21 @@ class AdminRequestController extends Controller
       return response()->json([
         "ok" => true,
         "data" => null,
-        "message" => "Successfully updated request"
+        "message" => "Successfully reviewed request"
       ]);
     }
 
     public function delete(RequestModel $requestItem) {
-      return DB::transaction(function() use($requestItem) {
-        $requestItem->delete();
+      $this->authorize("delete", $requestItem);
 
-        return response()->json([
-          'ok' => true,
-          'data' => [],
-        ]);
+      DB::transaction(function() use($requestItem) {
+        $requestItem->delete();
       });
+
+      return response()->json([
+        'ok' => true,
+        'data' => null,
+        "message" => "Successfully deleted request"
+      ]);
     }
 }
