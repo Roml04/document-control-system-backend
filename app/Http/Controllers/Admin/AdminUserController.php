@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
 class AdminUserController extends Controller
 {
     public function index(Request $request) {
-      $this->authorize("viewAny", User::class);
+      $this->authorize("adminViewAny", User::class);
 
       $users = User::query();
       

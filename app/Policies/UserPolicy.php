@@ -12,6 +12,11 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
+      return in_array($user->role, ["originator", "coordinator", "superior", "manager", "sysadmin"]);
+    }
+
+    public function adminViewAny(User $user): bool
+    {
       return $user->role === "sysadmin";
     }
 
