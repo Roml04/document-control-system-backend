@@ -23,6 +23,10 @@ Route::middleware('auth:sanctum')->group(function() {
 
   Route::get('/logout', [AuthController::class, 'logout']);
 
+  Route::prefix('user')->controller(UserController::class)->group(function() {
+    Route::get('/', 'index');
+  });
+
   Route::prefix('request')->controller(RequestController::class)->group(function() {
     Route::get("/", 'index');
     Route::post('/', 'store');

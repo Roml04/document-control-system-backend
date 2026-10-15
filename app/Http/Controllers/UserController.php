@@ -16,9 +16,20 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
-        //
+    public function index(Request $request) {
+      $this->authorize("viewAny", User::class);
+
+      $users = User::query();
+      
+      if($request->has('role')) {
+        $users->where(['role' => $request->role]);
+      }
+
+      return response()->json([
+        "ok" => true,
+        "data" => UserResource::collection($users->get()),
+        "message" => "Successfully indexed users"
+      ]);
     }
 
     /**
