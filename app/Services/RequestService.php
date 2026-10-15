@@ -240,16 +240,25 @@ class RequestService
           "file_id" => $validated["fileId"],
         ]);
 
+        $user = User::findOrFail($userId);
+
         /**
          * Creates a duplicate version with the id of the 
          * delete request and set the status to pending to
          * avoid conflicti  ng with the file's latest version  
          */
         $relatedVersion = Version::findOrFail($validated["latestVersionId"]);
+        
+        $fileName = formatFileName($user->first_name, $user->last_name, pathinfo($relatedVersion->file_name, PATHINFO_EXTENSION));
+        $filePath = "versions/$fileName";
+
+        Storage::copy($relatedVersion->file_path, $filePath);
 
         $newVersion = $relatedVersion->replicate()->fill([
           "request_id" => $requestItem->id,
-          "status" => "pending"
+          "status" => "pending",
+          "file_name" => $fileName,
+          "file_path" => $filePath,
         ]);
 
         $newVersion->save();
@@ -358,11 +367,13 @@ class RequestService
           ]);
           
           $file = File::findOrFail($requestItem->file_id);
+          $newFilePath = "rejected/$relatedVersion->file_name";
 
-          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_name");
+          Storage::move($relatedVersion->file_path, $newFilePath);
 
           $relatedVersion->update([
-            "status" => "rejected"
+            "status" => "rejected",
+            "file_path" => $newFilePath
           ]);
 
           $file->version()->where(["status" => "published"])->latest()->firstOrFail()->update([
