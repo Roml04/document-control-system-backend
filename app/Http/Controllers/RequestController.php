@@ -89,7 +89,7 @@ class RequestController extends Controller
           "department" => ["required", "string"],
           "revisionNumber" => ["required", "string"],
           "revisionDetails" => ["required", "string"],
-          "approver" => ["required", "exists:users,id"],
+          "approverId" => ["required", "exists:users,id"],
           "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
         ]);
 
