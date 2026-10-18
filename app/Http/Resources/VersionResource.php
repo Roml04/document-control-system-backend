@@ -25,7 +25,6 @@ class VersionResource extends JsonResource
           "revisionDetails" => $this->revision_details,
           "uploadDate" => $this->upload_date ? Carbon::parse($this->upload_date)->format('Y-m-d h:iA') : null,
           "revisionDate" => $this->revision_date ? Carbon::parse($this->revision_date)->format('Y-m-d h:iA') : null,
-          // "approver" => $this->approver,
           "approverId" => $this->approver_id,
           "approvedDate" => $this->approved_date ? Carbon::parse($this->approved_date)->format('Y-m-d h:iA') : null,
           "status" => $this->status,
@@ -48,7 +47,8 @@ class VersionResource extends JsonResource
               "lastName" => $this->request->user->last_name,
             ]),
           ]),
-          "approver" => $this->whenHas("approver", fn() => [
+          
+          "approver" => $this->when($this->approver !== null, fn() => [
             "id" => $this->approver->id,
             "firstName" => $this->approver->first_name,
             "lastName" => $this->approver->last_name,

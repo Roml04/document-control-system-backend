@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminVersionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\OnlyOfficeController;
 use App\Http\Controllers\RequestController;
@@ -32,11 +31,11 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get("/", 'index');
     Route::post('/', 'store');
     Route::get("/{request}", "view");
-    Route::patch("/{request}", 'update');
+    Route::patch("/{requestItem}/approval", 'review');
   });
 
   Route::prefix('version')->controller(VersionController::class)->group(function() {
-    Route::post("/", "index");
+    Route::get("/", "index");
     Route::get("/{version}", "view");
     Route::patch("/{version}", "edit");
     Route::get("/{version}/file", "download");
@@ -72,9 +71,12 @@ Route::middleware(['auth:sanctum', 'sysadmin'])->prefix('admin')->group(function
     Route::get("/{requestItem}", "view");
     Route::patch("/{requestItem}", "edit");
     Route::delete("/{requestItem}", "delete");
+
+    Route::patch("/{requestItem}/approval", "review");
   });
 
   Route::prefix('user')->controller(AdminUserController::class)->group(function() {
+    Route::get('/', 'index');
     Route::post("/", "store");
     Route::get("/{user}", "view");
     Route::patch("/{user}", "edit");
