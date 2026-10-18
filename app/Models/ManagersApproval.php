@@ -9,7 +9,7 @@ class ManagersApproval extends Model
     protected $fillable = ['manager_id', 'request_id', 'decision', 'decided_at'];
 
     public function user() {
-      return $this->belongsTo(User::class);
+      return $this->belongsTo(User::class, "manager_id");
     }
 
     public function request() {

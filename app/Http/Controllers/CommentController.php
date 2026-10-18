@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class CommentController extends Controller
 {
@@ -13,7 +14,13 @@ class CommentController extends Controller
      */
     public function index()
     {
-        return response()->json(CommentResource::collection(Comment::all()));
+      Gate::authorize("index-comments");
+
+      return response()->json([
+        "ok" => true,
+        "data" => CommentResource::collection(Comment::all()),
+        "message" => "Successfully indexed comments"
+      ]);
     }
 
     /**

@@ -66,6 +66,9 @@ class AdminVersionService
           ...($filePath ? ["file_path" => $filePath] : []),
         ]);
 
+        $version->request->update([
+          "status" => getNextStatus("rev", $version->request->status, $version->request->was_edited),
+        ]);
         /**
          * DEV-NOTE: Use user_id for superiors
          */

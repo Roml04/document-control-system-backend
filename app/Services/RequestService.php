@@ -19,6 +19,7 @@ use App\Models\File;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
+use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -40,34 +41,33 @@ class RequestService
 
       $user = $request->user();
 
+
       $forApprovals = DB::transaction(function () use($user) {
-        $requests = [];
+        // $requests = [];
+        $requests = RequestModel::query()->with(["version", "user:id,first_name,last_name,role"]);
 
         $role = $user->role;
 
-        /**
-         * NOTE: use enum here
-         */
         if($role === 'originator') {
-          return $requests;
+          return [];
         }
 
         if($role === 'coordinator') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "coordinator_approval")->get();
+          $requests = $requests->where("status", "coordinator_approval")->get();
         }
 
         if($role === 'superior') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "superior_approval")->get();
+          $requests = $requests->where("status", "superior_approval")->whereHas("version", fn($query) => $query->where("approver_id", $user->id))->get();
         }
 
         if($role === 'manager') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
+          $requests = $requests->where("status", "managers_approval")->whereHas("managersApproval", function ($query) use($user) {
             $query->where(['manager_id' => $user->id, 'decision' => 'pending']);
           })->get();
         }
 
         if($role === 'sysadmin') {
-          $requests = RequestModel::with(['version', 'user:id,first_name,last_name,role'])->get();
+          $requests = $requests->get();
         }
 
         return $requests->sortByDesc("created_at")->values();
@@ -109,7 +109,7 @@ class RequestService
           "revision_details" => $validatedWithFile["revisionDetails"],
           "upload_date" => now(),
           "revision_date" => now(),
-          "approver" => $validatedWithFile["approver"],
+          "approver_id" => $validatedWithFile["approverId"],
           "status" => "pending",
           "file_name" => $validatedWithFile["fileName"],
           "file_path" => $validatedWithFile["filePath"], 
@@ -122,9 +122,10 @@ class RequestService
     }
 
     public function createRevRequest(array $validated, int $userId) {
-      $version = Version::findOrFail($validated["latestVersionId"]);
 
-      DB::transaction(function () use($validated, $version, $userId) {
+      DB::transaction(function () use($validated, $userId) {
+        $version = Version::findOrFail($validated["latestVersionId"]);
+
         $requestItem = RequestModel::create([
           "type" => 'rev',
           "title" => $validated['title'],
@@ -134,25 +135,12 @@ class RequestService
           "file_id" => $version->file->id
         ]);
 
-        /**
-         * DEV-NOTE: Use replicate here
-         */
-        Version::create([
-          "file_title" => $version->file_title,
-          "file_type" => $version->file_type,
-          "originator" => $version->originator,
-          "department" => $version->department,
-          "revision_number" => $version->revision_number,
-          "revision_details" => $version->revision_details,
-          "upload_date" => $version->upload_date,
-          "revision_date" => $version->revision_date,
-          "approver" => $version->approver,
+        $newVersion = $version->replicate()->fill([
           "status" => "pending",
-          "file_name" => $version->file_name,
-          "file_path" => $version->file_path,
-          "file_id" => $version->file_id,
           "request_id" => $requestItem->id,
         ]);
+
+        $newVersion->save();
         
         $this->notifyApprover(UserRole::Coordinator, $requestItem);
       });
@@ -214,7 +202,7 @@ class RequestService
           ...($validated["department"] ? ["department" => $validated["department"]] : []),
           ...($validated["revisionNumber"] ? ["revision_number" => $validated["revisionNumber"]] : []),
           ...($validated["revisionDetails"] ? ["revision_details" => $validated["revisionDetails"]] : []),
-          ...($validated["approver"] ? ["approver" => $validated["approver"]] : []),
+          ...($validated["approverId"] ? ["approver_id" => $validated["approverId"]] : []),
           "approved_date" => null,
           "status" => "pending",
           ...($fileName ? ["file_name" => $fileName] : []),
@@ -252,16 +240,25 @@ class RequestService
           "file_id" => $validated["fileId"],
         ]);
 
+        $user = User::findOrFail($userId);
+
         /**
          * Creates a duplicate version with the id of the 
          * delete request and set the status to pending to
          * avoid conflicti  ng with the file's latest version  
          */
         $relatedVersion = Version::findOrFail($validated["latestVersionId"]);
+        
+        $fileName = formatFileName($user->first_name, $user->last_name, pathinfo($relatedVersion->file_name, PATHINFO_EXTENSION));
+        $filePath = "versions/$fileName";
+
+        Storage::copy($relatedVersion->file_path, $filePath);
 
         $newVersion = $relatedVersion->replicate()->fill([
           "request_id" => $requestItem->id,
-          "status" => "pending"
+          "status" => "pending",
+          "file_name" => $fileName,
+          "file_path" => $filePath,
         ]);
 
         $newVersion->save();
@@ -370,11 +367,13 @@ class RequestService
           ]);
           
           $file = File::findOrFail($requestItem->file_id);
+          $newFilePath = "rejected/$relatedVersion->file_name";
 
-          Storage::move($relatedVersion->file_path, "/rejected/$relatedVersion->file_name");
+          Storage::move($relatedVersion->file_path, $newFilePath);
 
           $relatedVersion->update([
-            "status" => "rejected"
+            "status" => "rejected",
+            "file_path" => $newFilePath
           ]);
 
           $file->version()->where(["status" => "published"])->latest()->firstOrFail()->update([
@@ -522,9 +521,8 @@ class RequestService
           return;
 
         case UserRole::Superior:
-          foreach($approvers as $superior) {
-            Mail::to($superior)->send(new NotifySuperior($requestItem));
-          }
+          $superior = User::findOrFail($requestItem->version()->latest()->first()->approver_id);
+          Mail::to($superior)->send(new NotifySuperior($requestItem));
           return;
 
         case UserRole::Manager:

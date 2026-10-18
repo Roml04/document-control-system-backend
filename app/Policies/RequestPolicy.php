@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Request;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class RequestPolicy
 {
@@ -13,7 +12,12 @@ class RequestPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+      return in_array($user->role, ["originator", "coordinator", "superior", "manager", "sysadmin"]);
+    }
+
+    public function adminViewAny(User $user): bool
+    {
+      return $user->role === "sysadmin";
     }
 
     /**
@@ -21,7 +25,7 @@ class RequestPolicy
      */
     public function view(User $user, Request $request): bool
     {
-        return false;
+      return in_array($user->role, ["originator", "coordinator", "superior", "manager", "sysadmin"]);
     }
 
     /**
@@ -29,15 +33,43 @@ class RequestPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+      return in_array($user->role, ["originator", "sysadmin"]);
+    }
+
+    public function adminCreate(User $user): bool
+    {
+      return $user->role === "sysadmin";
+    }
+
+    /**
+     * Determine whether the user can review the model.
+     */
+    public function review(User $user, Request $request): bool
+    {
+      $requiredRole = match ($request->status) {
+        "coordinator_approval" => "coordinator",
+        "originator_edit" => "originator",
+        "superior_approval" => "superior",
+        "managers_approval" => "manager",
+        "approved" => null,
+        "denied" => null,
+        default => null
+      };
+      
+      return $requiredRole !== null && $user->role === $requiredRole;
+    }
+
+    public function adminReview(User $user): bool
+    {
+      return $user->role === "sysadmin";
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Request $request): bool
+    public function update(User $user): bool
     {
-        return false;
+      return in_array($user->role, ["sysadmin"]);
     }
 
     /**
@@ -45,13 +77,13 @@ class RequestPolicy
      */
     public function delete(User $user, Request $request): bool
     {
-        return false;
+        return $user->role === "sysadmin";
     }
 
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, Request $request): bool
+    public function restore(User $user): bool
     {
         return false;
     }
@@ -59,7 +91,7 @@ class RequestPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, Request $request): bool
+    public function forceDelete(User $user): bool
     {
         return false;
     }

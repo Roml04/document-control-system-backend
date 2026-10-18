@@ -10,11 +10,35 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminUserController extends Controller
 {
+    public function index(Request $request) {
+      $this->authorize("adminViewAny", User::class);
+
+      $users = User::query();
+      
+      if($request->has('role')) {
+        $users->where(['role' => $request->role]);
+      }
+
+      return response()->json([
+        "ok" => true,
+        "data" => UserResource::collection($users->get()),
+        "message" => "Successfully indexed users"
+      ]);
+    }
+
     public function view(User $user) {
-      return new UserResource($user);
+      $this->authorize("view", $user);
+
+      return response()->json([
+        "ok" => true,
+        "data" => new UserResource($user),
+        "message" => "Successfully retrieved user"
+      ]);
     }
 
     public function store(Request $request) {
+      $this->authorize("create", User::class);
+
       $validated = $request->validate([
         'firstName' => ['required', 'string'],
         'lastName' => ['required', 'string'],
@@ -33,11 +57,14 @@ class AdminUserController extends Controller
 
       return response()->json([
         'ok' => true,
-        'message' => 'User created successfully'
+        'data' => null,
+        'message' => 'Successfully created user'
       ]);
     }
 
     public function edit(User $user, Request $request) {
+      $this->authorize("update", $user);
+
       $validated = $request->validate([
         'email' => ['required', 'email'],
         'firstName' => ['required', 'string'],
@@ -54,24 +81,29 @@ class AdminUserController extends Controller
 
       return response()->json([
         'ok' => true,
-        'message' => 'User updated'
+        'data' => null,
+        'message' => 'Successfully updated user'
       ]);
     }
 
     public function delete(User $user) {
+      $this->authorize("delete", $user);
+
       $user->delete();
 
       return response()->json([
         "ok" => true,
-        "message" => "User deleted"
+        'data' => null,
+        "message" => "Successfully deleted user"
       ]);
     }
 
     public function resetPassword(User $user, Request $request) {
+      $this->authorize("resetPassword", User::class);
+
       $validated = $request->validate([
         'password' => ['required', 'string', 'min:8', 'confirmed'],
       ]);
-
 
       $user->update([
         'password' => Hash::make($validated["password"])
@@ -79,8 +111,8 @@ class AdminUserController extends Controller
 
       return response()->json([
         "ok" => true,
-        "data" => [],
-        "message" => "Password reset successfully",
+        "data" => null,
+        "message" => "Successfully reset password",
       ]);
     }
 }

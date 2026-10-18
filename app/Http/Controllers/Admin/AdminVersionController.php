@@ -13,6 +13,8 @@ class AdminVersionController extends Controller
     public function __construct(public AdminVersionService $adminVersionService) {}
     
     public function index(Request $request) {
+      $this->authorize("viewAny", Version::class);
+
       $versions = Version::query();
 
       /**
@@ -21,18 +23,24 @@ class AdminVersionController extends Controller
 
       return response()->json([
         "ok" => true,
-        "data" => VersionResource::collection($versions->get())
+        "data" => VersionResource::collection($versions->get()),
+        "message" => "Successfully indexed versions"
       ]);
     }
 
     public function view(Version $version) {
+      $this->authorize("view", $version);
+
       return response()->json([
         "ok" => true,
-        "data" => new VersionResource($version)
+        "data" => new VersionResource($version),
+        "message" => "Successfully retrieved version"
       ]);
     }
 
     public function edit(Version $version, Request $request) {
+      $this->authorize("adminUpdate", $version);
+
       $validated = $request->validate([
         "id" => ["required", "exists:versions,id"],
         "fileTitle" => ["required", "string"],
@@ -53,16 +61,19 @@ class AdminVersionController extends Controller
 
       return response()->json([
         "ok" => true,
-        "data" => []
+        "data" => null,
+        "message" => "Successfully updated version"
       ]);
     }
 
     public function delete(Version $version) {
+      $this->authorize("delete", $version);
+
       $version->delete();
 
       return response()->json([
         "ok" => true,
-        "message" => "Version deleted successfully"
+        "message" => "Successfully deleted version"
       ]);
     }
 }

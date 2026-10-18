@@ -2,22 +2,31 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RequestResource;
-use App\Http\Resources\UserResource;
+use App\Mail\RequestDenied;
+use App\Mail\RequestUpdated;
+use App\Models\Comment;
+use App\Models\ManagersApproval;
 use App\Models\Request as RequestModel;
 use App\Models\User;
+use App\Services\ManagersApprovalService;
 use App\Services\RequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class AdminRequestController extends Controller
 {
     public function __construct(
       protected RequestService $requestService,
+      protected ManagersApprovalService $managersApprovalService,
     ) {}
     
     public function index(Request $request) {
+      $this->authorize("adminViewAny", RequestModel::class);
+
       $requestItem = RequestModel::query();
 
       if($request->has("userid")) {
@@ -27,11 +36,12 @@ class AdminRequestController extends Controller
       return response()->json([
         "ok" => true,
         "data" => RequestResource::collection($requestItem->get()),
-        "request" => $requestItem->get()
+        "message" => "Successfully indexed requests"
       ]);
     }
 
     public function store(Request $request) {
+      $this->authorize("adminCreate", RequestModel::class);
 
       $type = $request->validate([
         "type" => ["required", "in:upl,rev,resub,del"],
@@ -46,7 +56,7 @@ class AdminRequestController extends Controller
             "department" => ["required", "string"],
             "revisionNumber" => ["required", "string"],
             "revisionDetails" => ["required", "string"],
-            "approver" => ["required", "string"],
+            "approverId" => ["required", "exists:users,id"],
             "fileId" => ["nullable", "exists:files,id"],
             "fileTitle" => ["required","string"],
             "fileType" => ["required", "in:document,checklist,form"],
@@ -83,12 +93,12 @@ class AdminRequestController extends Controller
             "department" => ["required", "string"],
             "revisionNumber" => ["required", "string"],
             "revisionDetails" => ["required", "string"],
-            "approver" => ["required", "string"],
+            "approverId" => ["required", "exists:users,id"],
             "authorId" => ["required", "exists:users,id"],
             "file" => ["nullable", "file", "mimes:docx,pdf,xlsx,pptx"]
           ]);
 
-          // $this->requestService->createResubRequest($validated, $validated["authorId], $request->file("file"));
+          $this->requestService->createResubRequest($validated, $validated["authorId"], $request->file("file"));
           break;
 
         case "del":
@@ -109,13 +119,13 @@ class AdminRequestController extends Controller
       return response()->json([
         "ok" => true,
         "data" => null,
-        "message" => "Request submitted successfuly"
+        "message" => "Successfully created request"
       ]);
     }
-    
-    public function view(RequestModel $requestItem) {}
-    
+        
     public function edit(RequestModel $requestItem, Request $request) {
+      $this->authorize("update", $requestItem);
+
       $validated = $request->validate([
         "title" => ["required", "string"],
         "reason" => ["required", "string"],
@@ -124,6 +134,14 @@ class AdminRequestController extends Controller
       ]);
     
       DB::transaction(function() use($requestItem, $validated) {
+        $decisions = ManagersApproval::where(["request_id" => $requestItem->id])->get();
+
+        if(count($decisions) > 0) {
+          foreach($decisions as $decision) {
+            $decision->delete();
+          }
+        }
+
         $requestItem->update([
           "title" => $validated["title"],
           "reason" => $validated["reason"],
@@ -134,21 +152,84 @@ class AdminRequestController extends Controller
     
       return response()->json([
         "ok" => true,
-        "data" => [
-          "validated" => $validated,
-          "request" => $requestItem
-        ]
+        "data" => null,
+        "message" => "Successfully updated request"
+      ]);
+    }
+
+    public function review(RequestModel $requestItem, Request $request) {
+      $this->authorize("adminReview", RequestModel::class);
+
+      $validated = $request->validate([
+        "isApproved" => ["required", "bool"],
+        "requestId" => ["required", "exists:requests,id"],
+        "comment" => ["nullable", "string"]
+      ]);
+
+      $userId = $request->user()->id;
+
+      DB::transaction(function() use($requestItem, $validated, $userId) {
+        $requestItem->update([
+          "status" => getNextStatus($requestItem->type, $requestItem->status, $requestItem->was_edited)
+        ]);
+
+        $newReqStatus = $requestItem->status;
+
+        $comment = $validated["comment"];
+
+        if($comment) {
+          Comment::create([
+            "content" => $comment,
+            "user_id" => $userId,
+            "request_id" => $requestItem->id
+          ]);
+        }
+
+        if($newReqStatus !== "denied" && $newReqStatus !== "approved") {
+          Mail::to($requestItem->user)->send(new RequestUpdated($requestItem, $userId));
+        }
+
+        if($newReqStatus === "managers_approval") {
+          $this->managersApprovalService->createManagerDecisions($requestItem->id);
+
+          $this->requestService->notifyApprover(UserRole::Manager, $requestItem);
+          return;
+        }
+
+        if($newReqStatus === "approved") {
+          $this->requestService->finalizeRequest($requestItem, true);
+          $decisions = ManagersApproval::where(["request_id" => $requestItem->id, "decision" => "pending"]);
+
+          $decisions->delete();
+        }
+
+        if($newReqStatus === "denied") {
+          $this->requestService->finalizeRequest($requestItem, false);
+          $decisions = ManagersApproval::where(["request_id" => $requestItem->id, "decision" => "pending"]);
+          Mail::to($requestItem->user)->send(new RequestDenied($requestItem));
+
+          $decisions->delete();
+        }
+      });
+
+      return response()->json([
+        "ok" => true,
+        "data" => null,
+        "message" => "Successfully reviewed request"
       ]);
     }
 
     public function delete(RequestModel $requestItem) {
-      return DB::transaction(function() use($requestItem) {
-        $requestItem->delete();
+      $this->authorize("delete", $requestItem);
 
-        return response()->json([
-          'ok' => true,
-          'data' => [],
-        ]);
+      DB::transaction(function() use($requestItem) {
+        $requestItem->delete();
       });
+
+      return response()->json([
+        'ok' => true,
+        'data' => null,
+        "message" => "Successfully deleted request"
+      ]);
     }
 }

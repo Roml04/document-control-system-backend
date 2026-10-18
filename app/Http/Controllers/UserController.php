@@ -2,12 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Enum;
 
 class UserController extends Controller
 {
@@ -19,8 +16,9 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
+    public function index(Request $request) {
+      $this->authorize("viewAny", User::class);
+
       $users = User::query();
       
       if($request->has('role')) {
@@ -30,7 +28,7 @@ class UserController extends Controller
       return response()->json([
         "ok" => true,
         "data" => UserResource::collection($users->get()),
-        "message" => "Successfully retrieved users"
+        "message" => "Successfully indexed users"
       ]);
     }
 

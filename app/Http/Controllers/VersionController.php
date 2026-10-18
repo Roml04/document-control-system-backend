@@ -13,21 +13,25 @@ class VersionController extends Controller
 {
     public function __construct(public VersionService $versionService) {}
     
-    public function index() {
-      return response()->json([
-        "message" => "files"
-      ]);
-    }
+    public function index(Request $request) {
+      $this->authorize("viewAny", Version::class);
 
-    public function store() {
+      $versions = Version::query();
+
+      /**
+       * DEV-NOTE: Extract query parameters goes here
+       */
+
       return response()->json([
         "ok" => true,
-        "data" => [],
-        "message" => "File Saved"
+        "data" => VersionResource::collection($versions->get()),
+        "message" => "Successfully indexed versions"
       ]);
     }
 
     public function view(Version $version) {
+      $this->authorize("view", $version);
+
       return response()->json([
         "ok" => true,
         "data" => new VersionResource($version),
@@ -36,6 +40,8 @@ class VersionController extends Controller
     }
 
     public function download(Version $version) {
+      $this->authorize("download", Version::class);
+
       $filePath = $version->file_path;
 
       if(Storage::missing($filePath)) {
@@ -48,6 +54,7 @@ class VersionController extends Controller
     }
 
     public function edit(Request $request, Version $version) {
+      $this->authorize("update", $version);
 
       $validated = $request->validate([
         "id" => ["required", "exists:versions,id"],
@@ -66,7 +73,7 @@ class VersionController extends Controller
       return response()->json([
         "ok" => true,
         "data" => null,
-        "message" => "Successfully patched version"
+        "message" => "Successfully updated version"
       ]);
     }
 
