@@ -19,7 +19,6 @@ use App\Models\File;
 use App\Models\Request as RequestModel;
 use App\Models\User;
 use App\Models\Version;
-use Error;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -41,9 +40,7 @@ class RequestService
 
       $user = $request->user();
 
-
       $forApprovals = DB::transaction(function () use($user) {
-        // $requests = [];
         $requests = RequestModel::query()->with(["version", "user:id,first_name,last_name,role"]);
 
         $role = $user->role;
@@ -138,6 +135,7 @@ class RequestService
         $newVersion = $version->replicate()->fill([
           "status" => "pending",
           "request_id" => $requestItem->id,
+          "approved_date" => null,
         ]);
 
         $newVersion->save();
@@ -202,6 +200,7 @@ class RequestService
           ...($validated["department"] ? ["department" => $validated["department"]] : []),
           ...($validated["revisionNumber"] ? ["revision_number" => $validated["revisionNumber"]] : []),
           ...($validated["revisionDetails"] ? ["revision_details" => $validated["revisionDetails"]] : []),
+          ...($requestItem->was_edited ? ["revision_date" => now()] : []),
           ...($validated["approverId"] ? ["approver_id" => $validated["approverId"]] : []),
           "approved_date" => null,
           "status" => "pending",
@@ -259,6 +258,7 @@ class RequestService
           "status" => "pending",
           "file_name" => $fileName,
           "file_path" => $filePath,
+          "approved_date" => null,
         ]);
 
         $newVersion->save();
@@ -337,9 +337,11 @@ class RequestService
 
           $isSameFile = $currentPublished && $currentPublished->file_path === $relatedVersion->file_path;
 
-          $requestItem->update([
-            "was_edited" => !$isSameFile
-          ]);
+          if($requestItem->type !== "del") {
+            $requestItem->update([
+              "was_edited" => !$isSameFile
+            ]);
+          }
           /**
            * Move the published file to /rejected if
            * the published file and the current file

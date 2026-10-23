@@ -24,7 +24,7 @@ class VersionController extends Controller
 
       return response()->json([
         "ok" => true,
-        "data" => VersionResource::collection($versions->get()),
+        "data" => VersionResource::collection($versions->orderByDesc("created_at")->get()),
         "message" => "Successfully indexed versions"
       ]);
     }

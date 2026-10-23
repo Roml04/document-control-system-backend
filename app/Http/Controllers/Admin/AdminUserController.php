@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Error;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserController extends Controller
@@ -69,16 +71,24 @@ class AdminUserController extends Controller
         'email' => ['required', 'email'],
         'firstName' => ['required', 'string'],
         'lastName' => ['required', 'string'],
-        'role' => ['required', 'in:guest,originator,coordinator,superior,manager'],
+        'role' => ['nullable', 'in:guest,originator,coordinator,superior,manager'],
       ]);
 
-      $user->update([
+      $role = $validated["role"] ?? null;
+
+      $data = [
         'email' => $validated['email'],
         'first_name' => $validated['firstName'],
         'last_name' => $validated['lastName'],
-        'role' => $validated['role'],
-      ]);
+      ];
 
+      if($role !== null) {
+        Gate::authorize('update-role', $user);
+        $data["role"] = $role;
+      }
+
+      $user->update($data);
+      
       return response()->json([
         'ok' => true,
         'data' => null,

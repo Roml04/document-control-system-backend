@@ -49,7 +49,7 @@ class UserPolicy
      */
     public function delete(User $user, User $model): bool
     {
-      return $user->role === "sysadmin";
+      return $user->role === "sysadmin" && $model->role !== "sysadmin";
     }
 
     /**
