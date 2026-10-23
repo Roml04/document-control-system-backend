@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -37,6 +38,14 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        DB::table("users")->insert([
+          'email' => "admin@dcs.local",
+          'password' => '$2y$12$/j8rPgP6rEUkh.erLnGkfuTjpFZ9NmGPu7b4iL1KY77Uaram99sUO',
+          'first_name' => 'System',
+          'last_name' => 'Admin',
+          'role' => 'sysadmin'
+        ]);
     }
 
     /**
