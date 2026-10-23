@@ -73,16 +73,17 @@ class OnlyOfficeController extends Controller
     public function callback(Request $request, Version $version) {
 
       $savedStatuses = [2, 3, 6, 7];
-
-      /**
-       * 4 - no changes done
-       */
       
       if(in_array($request["status"], $savedStatuses)) {
         /**
          * Saves the file to /draft/versions folder
          */
-        $contents = file_get_contents($request["url"]);
+        $parts = parse_url($request["url"]);
+        $downloadUrl = rtrim(config('services.onlyoffice.docs_internal_url'), '/')
+          . $parts['path']
+          . (isset($parts['query']) ? '?' . $parts['query'] : '');
+
+        $contents = file_get_contents($downloadUrl);
         Storage::disk("local")->put("/draft/$version->file_name", $contents);
         $version->update([
           "draft_saved_at" => now(),

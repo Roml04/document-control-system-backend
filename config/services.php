@@ -36,7 +36,9 @@ return [
     ],
     
     'onlyoffice' => [
-      'jwt_secret' => env("ONLYOFFICE_JWT_SECRET")
+      'jwt_secret' => env("ONLYOFFICE_JWT_SECRET"),
+      'internal_url' => env("ONLYOFFICE_INTERNAL_URL", 'http://localhost:80'),
+      'docs_internal_url' => env("ONLYOFFICE_DOCS_INTERNAL_URL", 'http://localhost:80')
     ],
 
     'graph' => [

@@ -17,8 +17,30 @@ class OnlyOfficeService
         //
     }
 
+    public function internalBaseUrl(): string
+    {
+      return rtrim(config('services.onlyoffice.internal_url'), '/');
+    }
+
+    public function callBackUrl(int $versionId): string
+    {
+      return $this->internalBaseUrl() . "/api/onlyoffice/callback/$versionId";
+    }
+
     public function signUrl(int $versionId, string $mode) {
-      return URL::temporarySignedRoute($mode === 'edit' ? 'onlyoffice.edit' : 'onlyoffice.view', now()->addMinutes(30), ['version' => $versionId], absolute: true);
+      $routeName = $mode === "edit" ? "onlyoffice.edit" : "onlyoffice.view";
+      
+      URL::forceRootUrl($this->internalBaseUrl());
+
+      try {
+        return URL::temporarySignedRoute(
+          $routeName, 
+          now()->addMinutes(30), 
+          ['version' => $versionId], 
+          absolute: true);
+      } finally {
+        URL::forceRootUrl(null);
+      }
     }
 
     /**
@@ -37,7 +59,7 @@ class OnlyOfficeService
         ],
         "editorConfig" => [
           "mode" => "view",
-          "callbackUrl" => config("app.url") . "/api/onlyoffice/callback/$version->id",
+          "callbackUrl" => $this->callBackUrl($version->id),
         ]
       ];
 
@@ -64,7 +86,7 @@ class OnlyOfficeService
           "url" => $url,
         ],
         "editorConfig" => [
-          "callbackUrl" => config("app.url") . "/api/onlyoffice/callback/$version->id",
+          "callbackUrl" => $this->callBackUrl($version->id),
         ]
       ];
 
