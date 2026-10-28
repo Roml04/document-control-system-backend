@@ -1,6 +1,6 @@
 FROM serversideup/php:8.5-fpm-nginx
 
-ARG uSER_ID
+ARG USER_ID
 ARG GROUP_ID
 
 USER root
